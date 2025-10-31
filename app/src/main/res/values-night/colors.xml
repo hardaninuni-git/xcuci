@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Background Colors untuk Dark Mode -->
+    <color name="background_light">@color/grey_900</color>
+    <color name="background_white">@color/grey_800</color>
+
+    <!-- Text Colors untuk Dark Mode -->
+    <color name="text_primary">@color/white</color>
+    <color name="text_secondary">@color/grey_300</color>
+    <color name="text_hint">@color/grey_500</color>
+</resources>

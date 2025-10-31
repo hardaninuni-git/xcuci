@@ -1,0 +1,82 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.Xcuci" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <!-- Primary brand color - Biru Fresh -->
+        <item name="colorPrimary">@color/laundry_blue_primary</item>
+        <item name="colorPrimaryVariant">@color/laundry_blue_primary_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+
+        <!-- Secondary brand color - Hijau Fresh -->
+        <item name="colorSecondary">@color/laundry_green_secondary</item>
+        <item name="colorSecondaryVariant">@color/laundry_green_secondary_dark</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Status bar color -->
+        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+
+        <!-- Background colors -->
+        <item name="android:windowBackground">@color/background_light</item>
+        <item name="android:colorBackground">@color/background_light</item>
+
+        <!-- Text colors -->
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+
+        <!-- Material Components specific -->
+        <item name="materialButtonStyle">@style/Widget.Xcuci.Button</item>
+        <item name="textInputStyle">@style/Widget.Xcuci.TextInputLayout</item>
+        <item name="cardViewStyle">@style/Widget.Xcuci.CardView</item>
+
+        <!-- Custom attributes -->
+<!--        <item name="accentColor">@color/laundry_orange_accent</item>-->
+    </style>
+
+    <!-- Tema utama aplikasi -->
+    <style name="Theme.Xcuci" parent="Base.Theme.Xcuci" />
+
+    <!-- Tema NoActionBar untuk Activity dengan Toolbar custom -->
+    <style name="Theme.Xcuci.NoActionBar" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/laundry_blue_primary</item>
+        <item name="colorPrimaryVariant">@color/laundry_blue_primary_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/laundry_green_secondary</item>
+        <item name="colorSecondaryVariant">@color/laundry_green_secondary_dark</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:windowBackground">@color/background_light</item>
+<!--        <item name="accentColor">@color/laundry_orange_accent</item>-->
+    </style>
+
+    <!-- Tema Overlay -->
+    <style name="Theme.Xcuci.AppBarOverlay" parent="ThemeOverlay.MaterialComponents.Dark.ActionBar">
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorSecondary">@color/white</item>
+    </style>
+
+    <style name="Theme.Xcuci.PopupOverlay" parent="ThemeOverlay.MaterialComponents.Light">
+        <item name="android:background">@color/white</item>
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
+
+    <!-- Custom Widget Styles -->
+    <style name="Widget.Xcuci.Button" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/laundry_blue_primary</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+
+    <style name="Widget.Xcuci.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/laundry_blue_primary</item>
+        <item name="hintTextColor">@color/laundry_blue_primary</item>
+        <item name="boxCornerRadiusBottomEnd">8dp</item>
+        <item name="boxCornerRadiusBottomStart">8dp</item>
+        <item name="boxCornerRadiusTopEnd">8dp</item>
+        <item name="boxCornerRadiusTopStart">8dp</item>
+    </style>
+
+    <style name="Widget.Xcuci.CardView" parent="CardView">
+        <item name="cardCornerRadius">8dp</item>
+        <item name="cardElevation">4dp</item>
+        <item name="cardUseCompatPadding">true</item>
+    </style>
+</resources>

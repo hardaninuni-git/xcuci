@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">XCuci</string>
+    <string name="format_order_id">ORDER-# %1$d</string>
+    <string name="format_weight">%1$.1f kg</string>
+    <string name="format_price_per_kg">Rp %1$s/kg</string>
+    <string name="format_total_price">Rp %1$s</string>
+    <string name="item_qty">%1$d pcs</string>
+</resources>
