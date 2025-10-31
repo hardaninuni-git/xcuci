@@ -87,8 +87,8 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         binding.tilCustomerName.setEndIconMode(com.google.android.material.textfield.TextInputLayout.END_ICON_CUSTOM)
         binding.tilCustomerName.setEndIconDrawable(R.drawable.ic_arrow_drop_down)
 
-        // Setup customer dropdown
-        setupCustomerDropdown()
+        // Setup manual dropdown behavior
+        setupManualDropdown()
 
         // Setup end icon click listener
         binding.tilCustomerName.setEndIconOnClickListener {
@@ -100,6 +100,27 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
             customerNameEditText = binding.etCustomerName,
             phoneEditText = binding.etPhone
         )
+    }
+
+    private fun setupManualDropdown() {
+        // Setup click listener untuk show dropdown ketika field diklik
+        binding.etCustomerName.setOnClickListener {
+            if (customerList.isNotEmpty()) {
+                showCustomerSelectionDialog()
+            } else {
+                loadRecentCustomers()
+            }
+        }
+
+        // Setup focus listener untuk show dropdown ketika focus
+        binding.etCustomerName.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus && customerList.isNotEmpty()) {
+                // Tunda sedikit agar keyboard tidak muncul
+                binding.etCustomerName.postDelayed({
+                    showCustomerSelectionDialog()
+                }, 100)
+            }
+        }
     }
 
     // Implementasi CustomerInputListener
