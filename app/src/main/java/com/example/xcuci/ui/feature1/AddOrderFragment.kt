@@ -42,6 +42,22 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
     private var countCelana = 0
     private var countHanduk = 0
 
+    // Harga per item
+    private val hargaKaos = 0 // atau sesuaikan dengan kebutuhan
+    private val hargaCelana = 0 // atau sesuaikan dengan kebutuhan
+    private val hargaHanduk = 3000 // Harga tambahan per handuk
+
+    // Ukuran dan harga handuk
+    private var selectedHandukSize: String = ""
+    private val handukPrices = mapOf(
+        "S" to mapOf(0 to 2000, 1 to 1800, 2 to 1600, 3 to 1400, 4 to 1200), // Express, Besok, 2 hari, 3 hari, 4 hari
+        "M" to mapOf(0 to 3000, 1 to 2700, 2 to 2400, 3 to 2100, 4 to 1800),
+        "L" to mapOf(0 to 4000, 1 to 3600, 2 to 3200, 3 to 2800, 4 to 2400),
+        "XL" to mapOf(0 to 5000, 1 to 4500, 2 to 4000, 3 to 3500, 4 to 3000)
+    )
+    // Daftar ukuran handuk
+    private val handukSizes = listOf("S", "M", "L", "XL")
+
     // Customer list
     private var customerList: List<Customer> = emptyList()
 
@@ -75,11 +91,90 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         setupCounterListeners()
         setupLottieAnimation()
         setupCustomerSelection()
+        setupHandukSizeSelection()
         calculateTotalPrice()
         updateTotalPcs()
 
         // Load recent customers saat pertama kali buka
         loadRecentCustomers()
+    }
+
+    // TAMBAHKAN FUNCTION INI - Setup pilihan ukuran handuk
+    private fun setupHandukSizeSelection() {
+        // Setup dropdown untuk ukuran handuk
+        val sizeAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, handukSizes)
+        val autoCompleteTextView = binding.etHandukSize as? AutoCompleteTextView
+        autoCompleteTextView?.setAdapter(sizeAdapter)
+
+        // Setup click listener untuk dropdown
+        binding.etHandukSize.setOnClickListener {
+            showHandukSizeSelectionDialog()
+        }
+
+        binding.tilHandukSize.setEndIconOnClickListener {
+            showHandukSizeSelectionDialog()
+        }
+
+        // Setup item click listener
+        autoCompleteTextView?.setOnItemClickListener { _, _, position, _ ->
+            val selectedSize = handukSizes[position]
+            selectedHandukSize = selectedSize
+            binding.etHandukSize.setText(selectedSize)
+            updateHandukPriceInfo()
+            calculateTotalPrice()
+        }
+    }
+
+    // TAMBAHKAN FUNCTION INI - Dialog pilihan ukuran handuk
+    private fun showHandukSizeSelectionDialog() {
+        val sizeDescriptions = mapOf(
+            "S" to "Kecil (Rp 2.000)",
+            "M" to "Sedang (Rp 3.000)",
+            "L" to "Besar (Rp 4.000)",
+            "XL" to "Extra Large (Rp 5.000)"
+        )
+
+        val sizeNames = handukSizes.map {
+            "$it - ${sizeDescriptions[it]}"
+        }.toTypedArray()
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Pilih Ukuran Handuk")
+            .setItems(sizeNames) { _, which ->
+                val selectedSize = handukSizes[which]
+                selectedHandukSize = selectedSize
+                binding.etHandukSize.setText(selectedSize)
+                updateHandukPriceInfo()
+                calculateTotalPrice()
+            }
+            .setNegativeButton("Batal", null)
+            .show()
+    }
+
+    // TAMBAHKAN FUNCTION INI - Update info harga handuk
+    private fun updateHandukPriceInfo() {
+        if (selectedHandukSize.isNotEmpty()) {
+            val daysDifference = selectedDateCalendar?.let { calculateDaysDifference(it) } ?: 0
+            val price = getHandukPrice(selectedHandukSize, daysDifference)
+
+            val priceRange = when (selectedHandukSize) {
+                "S" -> "Rp 2.000"
+                "M" -> "Rp 3.000"
+                "L" -> "Rp 4.000"
+                "XL" -> "Rp 5.000"
+                else -> "-"
+            }
+
+            binding.tvHandukPriceInfo.text = "Harga $selectedHandukSize: Rp ${numberFormat.format(price)}/pcs ($priceRange)"
+        } else {
+            binding.tvHandukPriceInfo.text = "Pilih ukuran handuk terlebih dahulu"
+        }
+    }
+
+    // TAMBAHKAN FUNCTION INI - Dapatkan harga handuk berdasarkan ukuran dan hari
+    private fun getHandukPrice(size: String, daysDifference: Int): Int {
+        val adjustedDays = if (daysDifference > 4) 4 else daysDifference
+        return handukPrices[size]?.get(adjustedDays) ?: 0
     }
 
     private fun setupCustomerSelection() {
@@ -141,21 +236,6 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         return (requireActivity().application as App).customerRepository.getCustomerByPhone(phone)
     }
 
-    private fun setupCustomerDropdown() {
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, mutableListOf<String>())
-
-        // Cast ke AutoCompleteTextView
-        val autoCompleteTextView = binding.etCustomerName as? AutoCompleteTextView
-        autoCompleteTextView?.setAdapter(adapter)
-
-        autoCompleteTextView?.setOnItemClickListener { _, _, position, _ ->
-            val selectedCustomer = customerList.getOrNull(position)
-            selectedCustomer?.let { customer ->
-                autoFillCustomerData(customer)
-            }
-        }
-    }
-
     private fun showCustomerSelectionDialog() {
         if (customerList.isEmpty()) {
             Toast.makeText(requireContext(), "Tidak ada data pelanggan", Toast.LENGTH_SHORT).show()
@@ -180,9 +260,6 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         binding.etCustomerName.setText(customer.name)
         binding.etPhone.setText(customer.phone)
         binding.etAddress.setText(customer.address)
-
-        // Hide keyboard
-        hideKeyboard()
     }
 
     private fun loadRecentCustomers() {
@@ -228,11 +305,6 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         }
     }
 
-    private fun hideKeyboard() {
-        val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-        imm.hideSoftInputFromWindow(binding.etCustomerName.windowToken, 0)
-    }
-
     private fun setupCounterListeners() {
         // Kaos Counter
         binding.btnPlusKaos.setOnClickListener {
@@ -269,6 +341,8 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
             countHanduk++
             updateHandukCounter()
             updateTotalPcs()
+            calculateTotalPrice() // Tambahkan ini
+            showHandukPriceInfo() // Tampilkan info harga handuk
         }
 
         binding.btnMinusHanduk.setOnClickListener {
@@ -276,8 +350,39 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
                 countHanduk--
                 updateHandukCounter()
                 updateTotalPcs()
+                calculateTotalPrice() // Tambahkan ini
+                showHandukPriceInfo() // Tampilkan info harga handuk
             }
         }
+    }
+
+    // MODIFIKASI FUNCTION INI - Show handuk price info
+    private fun showHandukPriceInfo() {
+        if (countHanduk > 0 && selectedHandukSize.isNotEmpty()) {
+            val daysDifference = selectedDateCalendar?.let { calculateDaysDifference(it) } ?: 0
+            val handukPricePerPiece = getHandukPrice(selectedHandukSize, daysDifference)
+            val handukTotalPrice = countHanduk * handukPricePerPiece
+
+            Toast.makeText(
+                requireContext(),
+                "Handuk $selectedHandukSize: $countHanduk × Rp $handukPricePerPiece = Rp ${numberFormat.format(handukTotalPrice)}",
+                Toast.LENGTH_SHORT
+            ).show()
+        } else if (countHanduk > 0) {
+            Toast.makeText(
+                requireContext(),
+                "Pilih ukuran handuk terlebih dahulu",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun updateHandukPriceDisplay(handukPrice: Long) {
+        // Jika ada TextView khusus untuk harga handuk
+        // binding.tvHandukPrice.text = "Rp ${numberFormat.format(handukPrice)}"
+
+        // Atau tampilkan di helper text
+        binding.tilWeight.helperText = "Harga handuk: Rp ${numberFormat.format(handukPrice)}"
     }
 
     private fun updateKaosCounter() {
@@ -398,12 +503,12 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
 
     private fun updatePriceBasedOnDate(daysDifference: Int) {
         val pricePerKg = when (daysDifference) {
-            0 -> 10000
-            1 -> 8000
-            2 -> 7000
-            3 -> 6000
-            4 -> 5000
-            else -> 5000
+            0 -> 15000
+            1 -> 12000
+            2 -> 10000
+            3 -> 8000
+            4 -> 7000
+            else -> 6000
         }
 
         binding.etPricePerKg.setText(pricePerKg.toString())
@@ -413,6 +518,9 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
             1 -> "Besok"
             else -> "${daysDifference + 1} Hari Lagi"
         }
+        // Update info harga handuk juga
+        updateHandukPriceInfo()
+        calculateTotalPrice()
 
         binding.tilPricePerKg.helperText = "Layanan: $serviceType"
     }
@@ -437,9 +545,24 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
 
             val weight = weightText.toDouble()
             val pricePerKg = priceText.toDouble()
-            val totalPrice = weight * pricePerKg
+            // Hitung harga berdasarkan berat
+            val basePrice = weight * pricePerKg
+
+            // Hitung harga handuk berdasarkan ukuran dan hari
+            var handukAdditionalPrice = 0L
+            if (countHanduk > 0 && selectedHandukSize.isNotEmpty()) {
+                val daysDifference = selectedDateCalendar?.let { calculateDaysDifference(it) } ?: 0
+                val handukPricePerPiece = getHandukPrice(selectedHandukSize, daysDifference)
+                handukAdditionalPrice = countHanduk * handukPricePerPiece.toLong()
+            }
+
+            // Total harga
+            val totalPrice = basePrice + handukAdditionalPrice
 
             binding.tvTotalPrice.text = "Rp ${numberFormat.format(totalPrice)}"
+
+            // Tampilkan breakdown harga
+            updatePriceBreakdown(basePrice, handukAdditionalPrice)
 
         } catch (e: NumberFormatException) {
             binding.tvTotalPrice.text = "Rp 0"
@@ -448,24 +571,29 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         }
     }
 
-    private fun setupTextWatchers() {
-        // TextWatcher untuk berat
-        binding.etWeight.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
-                calculateTotalPrice()
-            }
-        })
+    // TAMBAHKAN FUNCTION INI - Update breakdown harga
+    private fun updatePriceBreakdown(basePrice: Double, handukAdditionalPrice: Long) {
+        val daysDifference = selectedDateCalendar?.let { calculateDaysDifference(it) } ?: 0
+        val serviceType = getServiceTypeText()
 
-        // TextWatcher untuk harga per kg
-        binding.etPricePerKg.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
-                calculateTotalPrice()
-            }
-        })
+        if (countHanduk > 0 && selectedHandukSize.isNotEmpty()) {
+            val handukPricePerPiece = getHandukPrice(selectedHandukSize, daysDifference)
+            binding.tilPricePerKg.helperText =
+                "Berat: ${numberFormat.format(basePrice)} + " +
+                        "Handuk ($selectedHandukSize): ${numberFormat.format(handukAdditionalPrice)} " +
+                        "(${countHanduk} × Rp ${numberFormat.format(handukPricePerPiece)})"
+        } else {
+            binding.tilPricePerKg.helperText = "Layanan: $serviceType"
+        }
+    }
+
+    private fun getServiceTypeText(): String {
+        val daysDifference = selectedDateCalendar?.let { calculateDaysDifference(it) } ?: 0
+        return when (daysDifference) {
+            0 -> "Express (Hari Ini)"
+            1 -> "Besok"
+            else -> "${daysDifference + 1} Hari Lagi"
+        }
     }
 
     private fun setupClickListeners() {
@@ -480,6 +608,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         }
     }
 
+    // MODIFIKASI FUNCTION INI - Validasi input
     private fun validateInput(): Boolean {
         with(binding) {
             if (etCustomerName.text.toString().trim().isEmpty()) {
@@ -535,6 +664,12 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
                 }
             } catch (e: NumberFormatException) {
                 etPricePerKg.error = "Harga harus angka yang valid"
+                return false
+            }
+
+            // VALIDASI UKURAN HANDUK JIKA ADA HANDUK
+            if (countHanduk > 0 && selectedHandukSize.isEmpty()) {
+                Toast.makeText(requireContext(), "Pilih ukuran handuk terlebih dahulu", Toast.LENGTH_SHORT).show()
                 return false
             }
 
