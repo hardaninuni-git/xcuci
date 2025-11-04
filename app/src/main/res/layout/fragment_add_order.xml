@@ -590,12 +590,16 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1.5"
-                            app:boxCornerRadiusBottomEnd="8dp"
-                            app:boxCornerRadiusBottomStart="8dp"
-                            app:boxCornerRadiusTopEnd="8dp"
-                            app:boxCornerRadiusTopStart="8dp"
+                            app:boxBackgroundMode="outline"
+                            app:boxCornerRadiusTopStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusBottomEnd="12dp"
                             app:endIconMode="custom"
-                            app:helperText="Pilih ukuran handuk">
+                            app:endIconDrawable="@drawable/ic_arrow_drop_down_custom"
+                            app:helperText="Pilih ukuran handuk"
+                            app:startIconDrawable="@drawable/ic_ruler"
+                            app:startIconTint="@color/colorPrimary">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/etHandukSize"
@@ -606,7 +610,7 @@
                                 android:focusable="false"
                                 android:clickable="true"
                                 android:textColor="@color/black"
-                                android:textColorHint="@color/grey_600"
+                                android:textColorHint="@color/grey_500"
                                 android:textSize="14sp" />
 
                         </com.google.android.material.textfield.TextInputLayout>

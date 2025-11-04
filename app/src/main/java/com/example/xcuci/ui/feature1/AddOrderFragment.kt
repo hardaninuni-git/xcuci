@@ -10,15 +10,23 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
+import android.widget.ImageButton
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.xcuci.App
 import com.example.xcuci.R
 import com.example.xcuci.data.model.Customer
+import com.example.xcuci.data.model.HandukSize
 import com.example.xcuci.data.model.OrderRequest
 import com.example.xcuci.data.repository.OrderRepository
 import com.example.xcuci.databinding.FragmentAddOrderBinding
+import com.example.xcuci.ui.adapter.CustomDialogAdapter
+import com.example.xcuci.ui.adapter.CustomDropdownAdapter
 import com.example.xcuci.utils.CustomerInputHelper
 import com.example.xcuci.utils.LoadingUtils
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -109,40 +117,78 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         toggleHandukSizeVisibility(false)
     }
 
-    // MODIFIKASI FUNCTION INI - Setup handuk size selection
+    private val handukSizesData = listOf(
+        HandukSize("S", "Kecil"),
+        HandukSize("M", "Sedang"),
+        HandukSize("L", "Besar"),
+        HandukSize("XL", "Extra Large")
+    )
+
     private fun setupHandukSizeSelection() {
-        // Setup dropdown untuk ukuran handuk
-        val sizeAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, handukSizes)
 
-        // Cast ke AutoCompleteTextView
-        val autoCompleteTextView = binding.etHandukSize as? androidx.appcompat.widget.AppCompatAutoCompleteTextView
-        autoCompleteTextView?.setAdapter(sizeAdapter)
-        autoCompleteTextView?.threshold = 1
-
-        // Setup click listener untuk dropdown
+        // Setup click listener untuk custom dialog
         binding.etHandukSize.setOnClickListener {
-            if (countHanduk > 0) {
-                showHandukSizeSelectionDialog()
-            }
+            showCustomHandukSizeDialog()
         }
 
         binding.tilHandukSize.setEndIconOnClickListener {
-            if (countHanduk > 0) {
-                showHandukSizeSelectionDialog()
+            showCustomHandukSizeDialog()
+        }
+    }
+
+    // TAMBAHKAN FUNCTION INI - Custom dialog yang lebih menarik
+    private fun showCustomHandukSizeDialog() {
+        if (countHanduk == 0) {
+            Toast.makeText(requireContext(), "Tambahkan handuk terlebih dahulu", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Inflate custom dialog layout
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_custom_header, null)
+        val recyclerView = RecyclerView(requireContext()).apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = CustomDialogAdapter(handukSizesData, selectedHandukSize) { selectedSize ->
+                // Handle item selection
+                selectedHandukSize = selectedSize.size
+                binding.etHandukSize.setText(selectedSize.size)
+                updateHandukPriceInfo()
+                calculateTotalPrice()
+//                dialog.dismiss()
             }
+
+            // Add divider
+            addItemDecoration(DividerItemDecoration(context, DividerItemDecoration.VERTICAL).apply {
+                setDrawable(ContextCompat.getDrawable(context, R.drawable.divider_custom)!!)
+            })
         }
 
-        // Setup item click listener untuk AutoCompleteTextView
-        autoCompleteTextView?.setOnItemClickListener { _, _, position, _ ->
-            val selectedSize = handukSizes[position]
-            selectedHandukSize = selectedSize
-            binding.etHandukSize.setText(selectedSize)
-            updateHandukPriceInfo()
-            calculateTotalPrice()
+        // Create custom dialog
+        val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogTheme)
+            .setCustomTitle(dialogView)
+            .setView(recyclerView)
+            .setNegativeButton("Batal") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .create()
 
-            // Sembunyikan dropdown setelah selection
-            autoCompleteTextView.dismissDropDown()
+        // Setup close button
+        val btnClose = dialogView.findViewById<ImageButton>(R.id.btnClose)
+        btnClose.setOnClickListener {
+            dialog.dismiss()
         }
+
+        // Custom dialog window
+        dialog.window?.setBackgroundDrawableResource(R.drawable.bg_custom_dialog)
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.9).toInt(),
+            android.view.WindowManager.LayoutParams.WRAP_CONTENT
+        )
+
+        dialog.show()
+
+        // Custom button styling
+        val negativeButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
+        negativeButton?.setTextColor(resources.getColor(R.color.grey_600, null))
     }
 
     // MODIFIKASI FUNCTION INI - Show handuk size selection dialog
