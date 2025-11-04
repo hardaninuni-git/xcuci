@@ -569,10 +569,12 @@
 
                     <!-- Pilihan Ukuran Handuk -->
                     <LinearLayout
+                        android:id="@+id/containerHandukSize"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:layout_marginBottom="16dp"
+                        android:visibility="gone"
                         android:gravity="center_vertical">
 
                         <TextView
@@ -620,6 +622,7 @@
                         android:textColor="@color/laundry_green_secondary"
                         android:textSize="12sp"
                         android:layout_marginBottom="8dp"
+                        android:visibility="gone"
                         android:gravity="end" />
 
                     <!-- Total Pcs Card -->

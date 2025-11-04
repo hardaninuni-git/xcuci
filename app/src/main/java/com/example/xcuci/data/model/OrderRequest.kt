@@ -13,5 +13,7 @@ data class OrderRequest(
     val kaosQty: Int, // HAPUS = 0
     val celanaQty: Int, // HAPUS = 0
     val handukQty: Int, // HAPUS = 0
+    val handukSize: String = "", // Tambahkan ini
+    val handukPrice: Int = 0,    // Tambahkan ini
     val totalPcs: Int // HAPUS = 0
 )
