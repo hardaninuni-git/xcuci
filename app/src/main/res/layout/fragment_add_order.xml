@@ -79,6 +79,8 @@
                         app:boxCornerRadiusBottomStart="8dp"
                         app:boxCornerRadiusTopEnd="8dp"
                         app:boxCornerRadiusTopStart="8dp"
+                        app:endIconMode="custom"
+                        app:endIconDrawable="@drawable/ic_arrow_drop_down"
                         app:errorEnabled="true">
 
                         <com.google.android.material.textfield.TextInputEditText
@@ -213,6 +215,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:hint="Berat"
+                                android:text="1"
                                 android:inputType="numberDecimal"
                                 android:maxLines="1"
                                 android:textColor="@color/black"

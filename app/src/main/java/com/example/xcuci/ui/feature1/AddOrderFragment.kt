@@ -1,6 +1,7 @@
 package com.example.xcuci.ui.feature1
 
 import android.app.DatePickerDialog
+import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -8,8 +9,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.AutoCompleteTextView
+import android.view.inputmethod.InputMethodManager
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -22,15 +22,22 @@ import com.example.xcuci.App
 import com.example.xcuci.R
 import com.example.xcuci.data.model.Customer
 import com.example.xcuci.data.model.HandukSize
+import com.example.xcuci.data.model.Order
 import com.example.xcuci.data.model.OrderRequest
-import com.example.xcuci.data.repository.OrderRepository
 import com.example.xcuci.databinding.FragmentAddOrderBinding
 import com.example.xcuci.ui.adapter.CustomDialogAdapter
-import com.example.xcuci.ui.adapter.CustomDropdownAdapter
+import com.example.xcuci.ui.adapter.CustomerDialogAdapter
+import com.example.xcuci.utils.CounterManager
 import com.example.xcuci.utils.CustomerInputHelper
-import com.example.xcuci.utils.LoadingUtils
+import com.example.xcuci.utils.CustomerManager
+import com.example.xcuci.utils.DateHelper
+import com.example.xcuci.utils.HandukSizeManager
+import com.example.xcuci.utils.OrderCreator
+import com.example.xcuci.utils.OrderValidator
+import com.example.xcuci.utils.PriceCalculator
+import com.example.xcuci.utils.UIStateManager
+import android.widget.TextView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Calendar
 import java.util.Locale
@@ -40,47 +47,22 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
     private var _binding: FragmentAddOrderBinding? = null
     private val binding get() = _binding!!
 
+    // Managers
     private lateinit var customerInputHelper: CustomerInputHelper
-    private val numberFormat = NumberFormat.getNumberInstance(Locale("id", "ID"))
+    private val counterManager = CounterManager()
+    private val handukSizeManager = HandukSizeManager()
+    private lateinit var orderValidator: OrderValidator
+    private lateinit var uiStateManager: UIStateManager
+    private lateinit var customerManager: CustomerManager
+    private lateinit var orderCreator: OrderCreator
+
+    // State variables
     private var completionDate: String? = null
     private var selectedDateCalendar: Calendar? = null
-
-    // Counter variables
-    private var countKaos = 0
-    private var countCelana = 0
-    private var countHanduk = 0
-
-    // Harga per item
-    private val hargaKaos = 0 // atau sesuaikan dengan kebutuhan
-    private val hargaCelana = 0 // atau sesuaikan dengan kebutuhan
-    private val hargaHanduk = 3000 // Harga tambahan per handuk
-
-    // Ukuran dan harga handuk
-    private var selectedHandukSize: String = ""
-    private val handukPrices = mapOf(
-        // S: 1-5 hari (5000, 7000, 8000, 9000, 10000)
-        "S" to mapOf(0 to 5000, 1 to 7000, 2 to 8000, 3 to 9000, 4 to 10000),
-
-        // M: 1-5 hari (6000, 8000, 9000, 10000, 11000)
-        "M" to mapOf(0 to 6000, 1 to 8000, 2 to 9000, 3 to 10000, 4 to 11000),
-
-        // L: 1-5 hari (7000, 8000, 9000, 10000, 11000)
-        "L" to mapOf(0 to 7000, 1 to 8000, 2 to 9000, 3 to 10000, 4 to 11000),
-
-        // XL: 1-5 hari (8000, 9000, 10000, 11000, 12000)
-        "XL" to mapOf(0 to 8000, 1 to 9000, 2 to 10000, 3 to 11000, 4 to 12000)
-    )
-    // Daftar ukuran handuk
-    private val handukSizes = listOf("S", "M", "L", "XL")
-
-    // Customer list
     private var customerList: List<Customer> = emptyList()
+    private val numberFormat = NumberFormat.getNumberInstance(Locale("id", "ID"))
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentAddOrderBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -88,7 +70,20 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize CustomerInputHelper
+        initializeManagers()
+        setupUI()
+        loadRecentCustomers()
+        toggleHandukSizeVisibility(false)
+    }
+
+    private fun initializeManagers() {
+        val app = requireActivity().application as App
+
+        orderValidator = OrderValidator(requireContext())
+        uiStateManager = UIStateManager(binding)
+        customerManager = CustomerManager(app.customerRepository, viewLifecycleOwner.lifecycleScope)
+        orderCreator = OrderCreator(app.orderRepository, viewLifecycleOwner.lifecycleScope)
+
         customerInputHelper = CustomerInputHelper(
             lifecycleScope = viewLifecycleOwner.lifecycleScope,
             config = CustomerInputHelper.Config(
@@ -99,173 +94,112 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
             )
         )
         customerInputHelper.setListener(this)
+    }
 
+    private fun setupUI() {
         setupToolbar()
         setupClickListeners()
         setupDatePicker()
         setupCounterListeners()
         setupLottieAnimation()
         setupCustomerSelection()
-        setupHandukSizeSelection() // Setup tetap dipanggil, tapi visibility diatur oleh counter
+        setupHandukSizeSelection()
         calculateTotalPrice()
         updateTotalPcs()
-
-        // Load recent customers saat pertama kali buka
-        loadRecentCustomers()
-
-        // Pastikan ukuran handuk disembunyikan di awal
-        toggleHandukSizeVisibility(false)
     }
 
-    private val handukSizesData = listOf(
-        HandukSize("S", "Kecil"),
-        HandukSize("M", "Sedang"),
-        HandukSize("L", "Besar"),
-        HandukSize("XL", "Extra Large")
-    )
-
-    private fun setupHandukSizeSelection() {
-
-        // Setup click listener untuk custom dialog
-        binding.etHandukSize.setOnClickListener {
-            showCustomHandukSizeDialog()
-        }
-
-        binding.tilHandukSize.setEndIconOnClickListener {
-            showCustomHandukSizeDialog()
+    //region Setup Methods
+    private fun setupToolbar() {
+        binding.toolbar.setNavigationIcon(R.drawable.ic_arrow_back)
+        binding.toolbar.title = "Tambah Order Laundry"
+        binding.toolbar.setNavigationOnClickListener {
+            activity?.onBackPressedDispatcher?.onBackPressed()
         }
     }
 
-    // TAMBAHKAN FUNCTION INI - Custom dialog yang lebih menarik
-    private fun showCustomHandukSizeDialog() {
-        if (countHanduk == 0) {
-            Toast.makeText(requireContext(), "Tambahkan handuk terlebih dahulu", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // Inflate custom dialog layout
-        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_custom_header, null)
-        val recyclerView = RecyclerView(requireContext()).apply {
-            layoutManager = LinearLayoutManager(context)
-            adapter = CustomDialogAdapter(handukSizesData, selectedHandukSize) { selectedSize ->
-                // Handle item selection
-                selectedHandukSize = selectedSize.size
-                binding.etHandukSize.setText(selectedSize.size)
-                updateHandukPriceInfo()
-                calculateTotalPrice()
-//                dialog.dismiss()
+    private fun setupClickListeners() {
+        binding.btnSaveOrder.setOnClickListener {
+            if (validateInput()) {
+                createOrder()
             }
-
-            // Add divider
-            addItemDecoration(DividerItemDecoration(context, DividerItemDecoration.VERTICAL).apply {
-                setDrawable(ContextCompat.getDrawable(context, R.drawable.divider_custom)!!)
-            })
-        }
-
-        // Create custom dialog
-        val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogTheme)
-            .setCustomTitle(dialogView)
-            .setView(recyclerView)
-            .setNegativeButton("Batal") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .create()
-
-        // Setup close button
-        val btnClose = dialogView.findViewById<ImageButton>(R.id.btnClose)
-        btnClose.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        // Custom dialog window
-        dialog.window?.setBackgroundDrawableResource(R.drawable.bg_custom_dialog)
-        dialog.window?.setLayout(
-            (resources.displayMetrics.widthPixels * 0.9).toInt(),
-            android.view.WindowManager.LayoutParams.WRAP_CONTENT
-        )
-
-        dialog.show()
-
-        // Custom button styling
-        val negativeButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
-        negativeButton?.setTextColor(resources.getColor(R.color.grey_600, null))
-    }
-
-    // MODIFIKASI FUNCTION INI - Show handuk size selection dialog
-    private fun showHandukSizeSelectionDialog() {
-        if (countHanduk == 0) {
-            Toast.makeText(requireContext(), "Tambahkan handuk terlebih dahulu", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val sizeDescriptions = mapOf(
-            "S" to "Kecil (Rp 5.000 - 10.000)",
-            "M" to "Sedang (Rp 6.000 - 11.000)",
-            "L" to "Besar (Rp 7.000 - 11.000)",
-            "XL" to "Extra Large (Rp 8.000 - 12.000)"
-        )
-
-        val sizeNames = handukSizes.map {
-            "$it - ${sizeDescriptions[it]}"
-        }.toTypedArray()
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Pilih Ukuran Handuk")
-            .setItems(sizeNames) { _, which ->
-                val selectedSize = handukSizes[which]
-                selectedHandukSize = selectedSize
-                binding.etHandukSize.setText(selectedSize)
-                updateHandukPriceInfo()
-                calculateTotalPrice()
-            }
-            .setNegativeButton("Batal", null)
-            .show()
-    }
-
-    // MODIFIKASI FUNCTION INI - Update handuk price info
-    private fun updateHandukPriceInfo() {
-        if (countHanduk > 0 && selectedHandukSize.isNotEmpty()) {
-            val daysDifference = selectedDateCalendar?.let { calculateDaysDifference(it) } ?: 0
-            val price = getHandukPrice(selectedHandukSize, daysDifference)
-
-            val priceRange = when (selectedHandukSize) {
-                "S" -> "Rp 2.000 - 1.200"
-                "M" -> "Rp 3.000 - 1.800"
-                "L" -> "Rp 4.000 - 2.400"
-                "XL" -> "Rp 5.000 - 3.000"
-                else -> "-"
-            }
-
-            binding.tvHandukPriceInfo.text = "Harga $selectedHandukSize: Rp ${numberFormat.format(price)}/pcs ($priceRange)"
-            binding.tvHandukPriceInfo.visibility = View.VISIBLE
-        } else if (countHanduk > 0) {
-            binding.tvHandukPriceInfo.text = "Pilih ukuran handuk terlebih dahulu"
-            binding.tvHandukPriceInfo.visibility = View.VISIBLE
-        } else {
-            binding.tvHandukPriceInfo.visibility = View.GONE
         }
     }
 
-    // TAMBAHKAN FUNCTION INI - Dapatkan harga handuk berdasarkan ukuran dan hari
-    private fun getHandukPrice(size: String, daysDifference: Int): Int {
-        val adjustedDays = if (daysDifference > 4) 4 else daysDifference
-        return handukPrices[size]?.get(adjustedDays) ?: 0
+    private fun setupDatePicker() {
+        binding.etCompletionDate.setOnClickListener { showDatePickerDialog() }
+        binding.tilCompletionDate.setEndIconOnClickListener { showDatePickerDialog() }
+
+        binding.etCompletionDate.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                binding.tilCompletionDate.error = null
+            }
+        })
+    }
+
+    private fun setupCounterListeners() {
+        binding.btnPlusKaos.setOnClickListener {
+            counterManager.incrementKaos()
+            updateKaosCounter()
+            updateTotalPcs()
+        }
+
+        binding.btnMinusKaos.setOnClickListener {
+            counterManager.decrementKaos()
+            updateKaosCounter()
+            updateTotalPcs()
+        }
+
+        binding.btnPlusCelana.setOnClickListener {
+            counterManager.incrementCelana()
+            updateCelanaCounter()
+            updateTotalPcs()
+        }
+
+        binding.btnMinusCelana.setOnClickListener {
+            counterManager.decrementCelana()
+            updateCelanaCounter()
+            updateTotalPcs()
+        }
+
+        binding.btnPlusHanduk.setOnClickListener {
+            counterManager.incrementHanduk()
+            updateHandukCounter()
+            updateTotalPcs()
+
+            if (counterManager.countHanduk == 1) {
+                toggleHandukSizeVisibility(true)
+            }
+            calculateTotalPrice()
+            showHandukPriceInfo()
+        }
+
+        binding.btnMinusHanduk.setOnClickListener {
+            counterManager.decrementHanduk()
+            updateHandukCounter()
+            updateTotalPcs()
+
+            if (counterManager.countHanduk == 0) {
+                toggleHandukSizeVisibility(false)
+            }
+            calculateTotalPrice()
+            showHandukPriceInfo()
+        }
+    }
+
+    private fun setupLottieAnimation() {
+        binding.lottieProgress.setAnimation(R.raw.loading_animation)
+        binding.lottieProgress.loop(true)
     }
 
     private fun setupCustomerSelection() {
-        // Add dropdown icon to customer name field
         binding.tilCustomerName.setEndIconMode(com.google.android.material.textfield.TextInputLayout.END_ICON_CUSTOM)
         binding.tilCustomerName.setEndIconDrawable(R.drawable.ic_arrow_drop_down)
 
-        // Setup manual dropdown behavior
         setupManualDropdown()
+        binding.tilCustomerName.setEndIconOnClickListener { showCustomerSelectionDialog() }
 
-        // Setup end icon click listener
-        binding.tilCustomerName.setEndIconOnClickListener {
-            showCustomerSelectionDialog()
-        }
-
-        // Setup customer input helper untuk handle text changes
         customerInputHelper.setupAllInputs(
             customerNameEditText = binding.etCustomerName,
             phoneEditText = binding.etPhone
@@ -273,358 +207,61 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
     }
 
     private fun setupManualDropdown() {
-        // Setup click listener untuk show dropdown ketika field diklik
         binding.etCustomerName.setOnClickListener {
             if (customerList.isNotEmpty()) {
+                Log.d("XBZ", "setupManualDropdown Isi")
                 showCustomerSelectionDialog()
             } else {
+                Log.d("XBZ", "setupManualDropdown Kosong")
                 loadRecentCustomers()
             }
         }
 
-        // Setup focus listener untuk show dropdown ketika focus
         binding.etCustomerName.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus && customerList.isNotEmpty()) {
-                // Tunda sedikit agar keyboard tidak muncul
-                binding.etCustomerName.postDelayed({
-                    showCustomerSelectionDialog()
-                }, 100)
+                binding.etCustomerName.postDelayed({ showCustomerSelectionDialog() }, 100)
             }
         }
     }
 
-    // Implementasi CustomerInputListener
-    override fun onLoadRecentCustomers() {
-        loadRecentCustomers()
+    private fun setupHandukSizeSelection() {
+        binding.etHandukSize.setOnClickListener { showCustomHandukSizeDialog() }
+        binding.tilHandukSize.setEndIconOnClickListener { showCustomHandukSizeDialog() }
     }
+    //endregion
 
-    override fun onSearchCustomers(query: String) {
-        Log.d("XBZ", "onSearchCustomers query: $query")
-        searchCustomers(query)
-    }
-
-    override fun onAutoFillCustomer(customer: Customer) {
-        autoFillCustomerData(customer)
-    }
-
-    override suspend fun onGetCustomerByPhone(phone: String): Customer? {
-        return (requireActivity().application as App).customerRepository.getCustomerByPhone(phone)
-    }
-
-    private fun showCustomerSelectionDialog() {
-        if (customerList.isEmpty()) {
-            Toast.makeText(requireContext(), "Tidak ada data pelanggan", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val customerNames = customerList.map {
-            "${it.name} - ${it.phone} (${it.totalOrders} order)"
-        }.toTypedArray()
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Pilih Pelanggan")
-            .setItems(customerNames) { _, which ->
-                val selectedCustomer = customerList[which]
-                autoFillCustomerData(selectedCustomer)
-            }
-            .setNegativeButton("Batal", null)
-            .show()
-    }
-
-    private fun autoFillCustomerData(customer: Customer) {
-        binding.etCustomerName.setText(customer.name)
-        binding.etPhone.setText(customer.phone)
-        binding.etAddress.setText(customer.address)
-    }
-
-    private fun loadRecentCustomers() {
-        lifecycleScope.launch {
-            try {
-                customerList = (requireActivity().application as App).customerRepository.getRecentCustomers(10)
-                updateCustomerDropdown()
-            } catch (e: Exception) {
-                Log.e("AddOrderFragment", "Error loading customers: ${e.message}")
-            }
-        }
-    }
-
-    private fun searchCustomers(query: String) {
-        lifecycleScope.launch {
-            try {
-                customerList = (requireActivity().application as App).customerRepository.searchCustomers(query)
-                updateCustomerDropdown()
-            } catch (e: Exception) {
-                Log.e("AddOrderFragment", "Error searching customers: ${e.message}")
-            }
-        }
-    }
-
-    private fun updateCustomerDropdown() {
-        val customerNames = customerList.map {
-            "${it.name} - ${it.phone} (${it.totalOrders} order)"
-        }
-
-        val adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_dropdown_item_1line,
-            customerNames
-        )
-
-        // Cast ke AutoCompleteTextView
-        val autoCompleteTextView = binding.etCustomerName as? AutoCompleteTextView
-        autoCompleteTextView?.setAdapter(adapter)
-
-        // Show dropdown jika ada hasil dan user sedang mengetik
-        if (customerNames.isNotEmpty() && binding.etCustomerName.text?.isNotEmpty() == true) {
-            autoCompleteTextView?.showDropDown()
-        }
-    }
-
-    private fun setupCounterListeners() {
-        // Kaos Counter
-        binding.btnPlusKaos.setOnClickListener {
-            countKaos++
-            updateKaosCounter()
-            updateTotalPcs()
-        }
-
-        binding.btnMinusKaos.setOnClickListener {
-            if (countKaos > 0) {
-                countKaos--
-                updateKaosCounter()
-                updateTotalPcs()
-            }
-        }
-
-        // Celana Counter
-        binding.btnPlusCelana.setOnClickListener {
-            countCelana++
-            updateCelanaCounter()
-            updateTotalPcs()
-        }
-
-        binding.btnMinusCelana.setOnClickListener {
-            if (countCelana > 0) {
-                countCelana--
-                updateCelanaCounter()
-                updateTotalPcs()
-            }
-        }
-
-        // Handuk Counter - MODIFIKASI DENGAN TOGGLE VISIBILITY
-        binding.btnPlusHanduk.setOnClickListener {
-            countHanduk++
-            updateHandukCounter()
-            updateTotalPcs()
-
-            // Tampilkan pilihan ukuran jika handuk > 0
-            if (countHanduk == 1) {
-                toggleHandukSizeVisibility(true)
-            }
-
-            calculateTotalPrice()
-            showHandukPriceInfo()
-        }
-
-        binding.btnMinusHanduk.setOnClickListener {
-            if (countHanduk > 0) {
-                countHanduk--
-                updateHandukCounter()
-                updateTotalPcs()
-                // Sembunyikan pilihan ukuran jika handuk = 0
-                if (countHanduk == 0) {
-                    toggleHandukSizeVisibility(false)
-                }
-                calculateTotalPrice() // Tambahkan ini
-                showHandukPriceInfo() // Tampilkan info harga handuk
-            }
-        }
-    }
-
-    // MODIFIKASI FUNCTION INI - Show handuk price info
-    private fun showHandukPriceInfo() {
-        if (countHanduk > 0 && selectedHandukSize.isNotEmpty()) {
-            val daysDifference = selectedDateCalendar?.let { calculateDaysDifference(it) } ?: 0
-            val handukPricePerPiece = getHandukPrice(selectedHandukSize, daysDifference)
-            val handukTotalPrice = countHanduk * handukPricePerPiece
-
-            Toast.makeText(
-                requireContext(),
-                "Handuk $selectedHandukSize: $countHanduk × Rp $handukPricePerPiece = Rp ${numberFormat.format(handukTotalPrice)}",
-                Toast.LENGTH_SHORT
-            ).show()
-        } else if (countHanduk > 0) {
-            Toast.makeText(
-                requireContext(),
-                "Pilih ukuran handuk terlebih dahulu",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-
-    private fun updateHandukPriceDisplay(handukPrice: Long) {
-        // Jika ada TextView khusus untuk harga handuk
-        // binding.tvHandukPrice.text = "Rp ${numberFormat.format(handukPrice)}"
-
-        // Atau tampilkan di helper text
-        binding.tilWeight.helperText = "Harga handuk: Rp ${numberFormat.format(handukPrice)}"
-    }
-
+    //region Counter Methods
     private fun updateKaosCounter() {
-        binding.tvCountKaos.text = countKaos.toString()
+        binding.tvCountKaos.text = counterManager.countKaos.toString()
     }
 
     private fun updateCelanaCounter() {
-        binding.tvCountCelana.text = countCelana.toString()
+        binding.tvCountCelana.text = counterManager.countCelana.toString()
     }
 
     private fun updateHandukCounter() {
-        binding.tvCountHanduk.text = countHanduk.toString()
-        // Update visibility berdasarkan jumlah handuk
-        if (countHanduk > 0 && binding.containerHandukSize.visibility != View.VISIBLE) {
+        binding.tvCountHanduk.text = counterManager.countHanduk.toString()
+        if (counterManager.countHanduk > 0 && binding.containerHandukSize.visibility != View.VISIBLE) {
             toggleHandukSizeVisibility(true)
-        } else if (countHanduk == 0 && binding.containerHandukSize.visibility == View.VISIBLE) {
+        } else if (counterManager.countHanduk == 0 && binding.containerHandukSize.visibility == View.VISIBLE) {
             toggleHandukSizeVisibility(false)
         }
     }
 
     private fun updateTotalPcs() {
-        val totalPcs = countKaos + countCelana + countHanduk
-        binding.tvTotalPcs.text = "$totalPcs pcs"
+        binding.tvTotalPcs.text = "${counterManager.getTotalPcs()} pcs"
     }
 
-    private fun setupDatePicker() {
-        // Set click listener untuk tanggal selesai
-        binding.etCompletionDate.setOnClickListener {
-            showDatePickerDialog()
+    private fun toggleHandukSizeVisibility(show: Boolean) {
+        uiStateManager.toggleHandukSizeVisibility(show)
+        if (!show) {
+            handukSizeManager.resetSelection()
+            binding.etHandukSize.setText("")
         }
-
-        // Set end icon click listener
-        binding.tilCompletionDate.setEndIconOnClickListener {
-            showDatePickerDialog()
-        }
-
-        // Clear error ketika text berubah (tanggal dipilih)
-        binding.etCompletionDate.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
-                binding.tilCompletionDate.error = null
-            }
-        })
     }
+    //endregion
 
-    private fun showDatePickerDialog() {
-        val calendar = Calendar.getInstance()
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH)
-        val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-        val datePickerDialog = DatePickerDialog(
-            requireContext(),
-            { _, selectedYear, selectedMonth, selectedDay ->
-                val selectedCalendar = Calendar.getInstance().apply {
-                    set(selectedYear, selectedMonth, selectedDay)
-                }
-
-                val daysDifference = calculateDaysDifference(selectedCalendar)
-
-                if (daysDifference < 0) {
-                    Toast.makeText(requireContext(), "Tanggal tidak boleh sebelum hari ini", Toast.LENGTH_SHORT).show()
-                    return@DatePickerDialog
-                }
-
-                if (daysDifference > 4) {
-                    Toast.makeText(requireContext(), "Maksimal 5 hari dari hari ini", Toast.LENGTH_SHORT).show()
-                    return@DatePickerDialog
-                }
-
-                selectedDateCalendar = selectedCalendar
-                completionDate = String.format(
-                    Locale.getDefault(),
-                    "%04d-%02d-%02d",
-                    selectedYear,
-                    selectedMonth + 1,
-                    selectedDay
-                )
-
-                val displayDate = String.format(
-                    Locale("id", "ID"),
-                    "%02d %s %04d",
-                    selectedDay,
-                    getMonthName(selectedMonth),
-                    selectedYear
-                )
-
-                binding.etCompletionDate.setText(displayDate)
-                updatePriceBasedOnDate(daysDifference)
-                calculateTotalPrice()
-            },
-            year,
-            month,
-            day
-        )
-
-        datePickerDialog.datePicker.minDate = System.currentTimeMillis() - 1000
-        val maxDateCalendar = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_MONTH, 4)
-        }
-        datePickerDialog.datePicker.maxDate = maxDateCalendar.timeInMillis
-        datePickerDialog.show()
-    }
-
-    private fun calculateDaysDifference(selectedDate: Calendar): Int {
-        val today = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-
-        val selected = selectedDate.apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-
-        val diff = selected.timeInMillis - today.timeInMillis
-        return (diff / (24 * 60 * 60 * 1000)).toInt()
-    }
-
-    private fun updatePriceBasedOnDate(daysDifference: Int) {
-        val pricePerKg = when (daysDifference) {
-            0 -> 15000
-            1 -> 12000
-            2 -> 10000
-            3 -> 8000
-            4 -> 7000
-            else -> 6000
-        }
-
-        binding.etPricePerKg.setText(pricePerKg.toString())
-
-        val serviceType = when (daysDifference) {
-            0 -> "Express (Hari Ini)"
-            1 -> "Besok"
-            else -> "${daysDifference + 1} Hari Lagi"
-        }
-        // Update info harga handuk juga
-        updateHandukPriceInfo()
-        calculateTotalPrice()
-
-        binding.tilPricePerKg.helperText = "Layanan: $serviceType"
-    }
-
-    private fun getMonthName(month: Int): String {
-        val monthNames = arrayOf(
-            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-        )
-        return monthNames[month]
-    }
-
-    // MODIFIKASI FUNCTION INI - Calculate total price dengan harga handuk dinamis
+    //region Price Calculation
     private fun calculateTotalPrice() {
         try {
             val weightText = binding.etWeight.text.toString().trim()
@@ -637,158 +274,411 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
 
             val weight = weightText.toDouble()
             val pricePerKg = priceText.toDouble()
+            val daysDifference = selectedDateCalendar?.let { DateHelper.calculateDaysDifference(it) } ?: 0
 
-            // Hitung harga berdasarkan berat
-            val basePrice = weight * pricePerKg
+            val basePrice = PriceCalculator.calculateBasePrice(weight, pricePerKg)
+            val handukAdditionalPrice = PriceCalculator.calculateHandukPrice(
+                counterManager.countHanduk,
+                handukSizeManager.selectedHandukSize,
+                daysDifference
+            )
 
-            // Hitung harga handuk berdasarkan ukuran dan hari (hanya jika ada handuk dan ukuran dipilih)
-            var handukAdditionalPrice = 0
-            if (countHanduk > 0 && selectedHandukSize.isNotEmpty()) {
-                val daysDifference = selectedDateCalendar?.let { calculateDaysDifference(it) } ?: 0
-                val handukPricePerPiece = getHandukPrice(selectedHandukSize, daysDifference)
-                handukAdditionalPrice = countHanduk * handukPricePerPiece // Convert Int to Long
-            }
-
-            // Total harga
             val totalPrice = basePrice + handukAdditionalPrice
-
             binding.tvTotalPrice.text = "Rp ${numberFormat.format(totalPrice)}"
+            updatePriceBreakdown(basePrice, handukAdditionalPrice, daysDifference)
 
-            // Tampilkan breakdown harga
-            updatePriceBreakdown(basePrice, handukAdditionalPrice)
-
-        } catch (e: NumberFormatException) {
-            binding.tvTotalPrice.text = "Rp 0"
         } catch (e: Exception) {
             binding.tvTotalPrice.text = "Rp 0"
         }
     }
 
-    // TAMBAHKAN FUNCTION INI - Update breakdown harga
-    private fun updatePriceBreakdown(basePrice: Double, handukAdditionalPrice: Int) {
-        val daysDifference = selectedDateCalendar?.let { calculateDaysDifference(it) } ?: 0
-        val serviceType = getServiceTypeText()
+    private fun updatePriceBreakdown(basePrice: Double, handukAdditionalPrice: Int, daysDifference: Int) {
+        val serviceType = PriceCalculator.getServiceTypeText(daysDifference)
 
-        if (countHanduk > 0 && selectedHandukSize.isNotEmpty()) {
-            val handukPricePerPiece = getHandukPrice(selectedHandukSize, daysDifference)
+        if (counterManager.countHanduk > 0 && handukSizeManager.selectedHandukSize.isNotEmpty()) {
+            val handukPricePerPiece = PriceCalculator.getHandukPrice(handukSizeManager.selectedHandukSize, daysDifference)
             binding.tilPricePerKg.helperText =
                 "Berat: ${numberFormat.format(basePrice)} + " +
-                        "Handuk ($selectedHandukSize): ${numberFormat.format(handukAdditionalPrice)} " +
-                        "(${countHanduk} × Rp ${numberFormat.format(handukPricePerPiece)})"
+                        "Handuk (${handukSizeManager.selectedHandukSize}): ${numberFormat.format(handukAdditionalPrice)} " +
+                        "(${counterManager.countHanduk} × Rp ${numberFormat.format(handukPricePerPiece)})"
         } else {
             binding.tilPricePerKg.helperText = "Layanan: $serviceType"
         }
     }
 
-    private fun getServiceTypeText(): String {
-        val daysDifference = selectedDateCalendar?.let { calculateDaysDifference(it) } ?: 0
-        return when (daysDifference) {
-            0 -> "Express (Hari Ini)"
-            1 -> "Besok"
-            else -> "${daysDifference + 1} Hari Lagi"
+    private fun showHandukPriceInfo() {
+        if (counterManager.countHanduk > 0 && handukSizeManager.selectedHandukSize.isNotEmpty()) {
+            val daysDifference = selectedDateCalendar?.let { DateHelper.calculateDaysDifference(it) } ?: 0
+            val handukPricePerPiece = PriceCalculator.getHandukPrice(handukSizeManager.selectedHandukSize, daysDifference)
+            val handukTotalPrice = counterManager.countHanduk * handukPricePerPiece
+
+            Toast.makeText(
+                requireContext(),
+                "Handuk ${handukSizeManager.selectedHandukSize}: ${counterManager.countHanduk} × Rp $handukPricePerPiece = Rp ${numberFormat.format(handukTotalPrice)}",
+                Toast.LENGTH_SHORT
+            ).show()
+        } else if (counterManager.countHanduk > 0) {
+            Toast.makeText(requireContext(), "Pilih ukuran handuk terlebih dahulu", Toast.LENGTH_SHORT).show()
+        }
+    }
+    //endregion
+
+    //region Date Picker
+    private fun showDatePickerDialog() {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        val datePickerDialog = DatePickerDialog(
+            requireContext(),
+            { _, selectedYear, selectedMonth, selectedDay ->
+                handleDateSelection(selectedYear, selectedMonth, selectedDay)
+            },
+            year,
+            month,
+            day
+        )
+
+        datePickerDialog.datePicker.minDate = System.currentTimeMillis() - 1000
+        val maxDateCalendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, 4) }
+        datePickerDialog.datePicker.maxDate = maxDateCalendar.timeInMillis
+        datePickerDialog.show()
+    }
+
+    private fun handleDateSelection(year: Int, month: Int, day: Int) {
+        val selectedCalendar = Calendar.getInstance().apply {
+            set(year, month, day)
+        }
+
+        val daysDifference = DateHelper.calculateDaysDifference(selectedCalendar)
+
+        if (daysDifference < 0) {
+            Toast.makeText(requireContext(), "Tanggal tidak boleh sebelum hari ini", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (daysDifference > 4) {
+            Toast.makeText(requireContext(), "Maksimal 5 hari dari hari ini", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        selectedDateCalendar = selectedCalendar
+        completionDate = DateHelper.formatDatabaseDate(year, month, day)
+
+        val displayDate = DateHelper.formatDisplayDate(day, month, year)
+        binding.etCompletionDate.setText(displayDate)
+
+        updatePriceBasedOnDate(daysDifference)
+        calculateTotalPrice()
+    }
+
+    private fun updatePriceBasedOnDate(daysDifference: Int) {
+        val pricePerKg = PriceCalculator.getPricePerKgByDays(daysDifference)
+        binding.etPricePerKg.setText(pricePerKg.toString())
+
+        val serviceType = PriceCalculator.getServiceTypeText(daysDifference)
+        updateHandukPriceInfo()
+        calculateTotalPrice()
+
+        binding.tilPricePerKg.helperText = "Layanan: $serviceType"
+    }
+
+    private fun updateHandukPriceInfo() {
+        val daysDifference = selectedDateCalendar?.let { DateHelper.calculateDaysDifference(it) } ?: 0
+        uiStateManager.updateHandukPriceInfo(
+            counterManager.countHanduk,
+            handukSizeManager.selectedHandukSize,
+            daysDifference
+        )
+    }
+    //endregion
+
+    //region Customer Management
+    override fun onLoadRecentCustomers() {
+        loadRecentCustomers()
+    }
+
+    override fun onSearchCustomers(query: String) {
+        customerManager.searchCustomersAsync(query) { customers ->
+            customerList = customers
         }
     }
 
-    // TAMBAHKAN FUNCTION INI - Toggle visibility ukuran handuk
-    private fun toggleHandukSizeVisibility(show: Boolean) {
-        if (show) {
-            binding.containerHandukSize.visibility = View.VISIBLE
-            binding.tvHandukPriceInfo.visibility = View.VISIBLE
-        } else {
-            binding.containerHandukSize.visibility = View.GONE
-            binding.tvHandukPriceInfo.visibility = View.GONE
-            // Reset pilihan ukuran ketika disembunyikan
-            selectedHandukSize = ""
-            binding.etHandukSize.setText("")
-        }
+    override fun onAutoFillCustomer(customer: Customer) {
+        autoFillCustomerData(customer)
     }
 
-    private fun setupClickListeners() {
-        binding.btnSaveOrder.setOnClickListener {
-            if (validateInput()) {
-                createOrder()
+    override suspend fun onGetCustomerByPhone(phone: String): Customer? {
+        return customerManager.getCustomerByPhone(phone)
+    }
+
+    private fun loadRecentCustomers() {
+        println("DEBUG: Loading recent customers...")
+        Log.d("XBZ", "loadRecentCustomers")
+        customerManager.loadRecentCustomersAsync { customers ->
+            println("DEBUG: Customers loaded: ${customers.size}")
+            Log.d("XBZ", "loadRecentCustomersAsync ${customers.size}")
+            customerList = customers
+
+
+            // Debug: Print customer names
+            customers.forEachIndexed { index, customer ->
+                Log.d("XBZ", "customers.forEachIndexed $index: ${customer.name} - ${customer.phone}")
             }
         }
+    }
 
-        // MODIFIKASI BACK BUTTON - Simple dan clean
-        binding.toolbar.setNavigationOnClickListener {
-            // Biarkan Activity handle back navigation
-            activity?.onBackPressedDispatcher?.onBackPressed()
+    // Modifikasi dialog customer dengan search
+    private fun showCustomerSelectionDialog() {
+        // Selalu load data terbaru saat dialog dibuka
+        Log.d("XBZ","showCustomerSelectionDialog")
+        loadRecentCustomersWithCallback { success ->
+            if (success && customerList.isNotEmpty()) {
+                Toast.makeText(requireContext(), "Ada data pelanggan", Toast.LENGTH_SHORT).show()
+                showCustomerDialog()
+            } else {
+                Toast.makeText(requireContext(), "Tidak ada data pelanggan", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
-    // MODIFIKASI FUNCTION INI - Validasi input
+    private fun loadRecentCustomersWithCallback(onComplete: (Boolean) -> Unit) {
+        customerManager.loadRecentCustomersAsync { customers ->
+            customerList = customers
+
+            requireActivity().runOnUiThread {
+                onComplete(customers.isNotEmpty())
+            }
+        }
+    }
+
+    private fun showCustomerDialog() {
+        println("DEBUG: ===== START showCustomerDialog() =====")
+
+        // Inflate custom dialog layout dengan search
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_customer_with_search, null)
+
+        // Setup search functionality
+        val etSearch = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etSearch)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvDialogTitle)
+
+        // DEBUG 1: Print customerList detail
+        println("DEBUG: customerList size in dialog: ${customerList.size}")
+        customerList.forEachIndexed { index, customer ->
+            println("DEBUG:   [$index] ${customer.name} - ${customer.phone} (${customer.totalOrders} orders)")
+        }
+
+        // PERBAIKAN 1: Update title dengan data terbaru
+        tvTitle.text = "Pilih Pelanggan (${customerList.size})"
+
+        // Create dialog
+        val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogTheme)
+            .setView(dialogView)
+            .setNegativeButton("Pelanggan Baru") { d, _ ->
+                clearCustomerFields()
+                d.dismiss()
+            }
+            .create()
+
+        val recyclerViewCustomer = dialogView.findViewById<RecyclerView>(R.id.recyclerViewCustomer)
+
+        // DEBUG 2: Print sebelum membuat adapter
+        println("DEBUG: Creating adapter with ${customerList.size} customers")
+
+        // PERBAIKAN 2: Pastikan adapter menggunakan data terbaru
+        val adapter = CustomerDialogAdapter(ArrayList(customerList)) { selectedCustomer ->
+            println("DEBUG: Customer selected: ${selectedCustomer.name}")
+            handleCustomerSelection(selectedCustomer)
+            dialog.dismiss()
+        }
+
+        // DEBUG 3: Print setelah adapter dibuat
+        println("DEBUG: Adapter created with itemCount: ${adapter.itemCount}")
+
+        recyclerViewCustomer.apply {
+            layoutManager = LinearLayoutManager(context)
+            this.adapter = adapter
+            addItemDecoration(DividerItemDecoration(context, DividerItemDecoration.VERTICAL).apply {
+                setDrawable(ContextCompat.getDrawable(context, R.drawable.divider_custom)!!)
+            })
+
+            // DEBUG: Set background sementara untuk test visibility
+            setBackgroundColor(ContextCompat.getColor(context, R.color.grey_100))
+        }
+
+        // DEBUG 4: Print RecyclerView setup
+        println("DEBUG: RecyclerView setup completed")
+        println("DEBUG: RecyclerView: $recyclerViewCustomer")
+        println("DEBUG: RecyclerView layoutManager: ${recyclerViewCustomer.layoutManager}")
+        println("DEBUG: RecyclerView adapter: ${recyclerViewCustomer.adapter}")
+
+        // PERBAIKAN 3: Setup search yang benar dengan filter di adapter
+        etSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s.toString().trim()
+                println("DEBUG: Search query: '$query'")
+                println("DEBUG: Before filter - adapter itemCount: ${adapter.itemCount}")
+
+                // Langsung panggil filter - adapter sudah diinisialisasi
+                adapter.filter(query)
+
+                println("DEBUG: After filter - adapter itemCount: ${adapter.itemCount}")
+            }
+
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        // PERBAIKAN 4: Setup close button
+        val btnClose = dialogView.findViewById<ImageButton>(R.id.btnClose)
+        btnClose.setOnClickListener {
+            println("DEBUG: Dialog closed by close button")
+            dialog.dismiss()
+        }
+
+        // PERBAIKAN 5: Setup dialog window
+        dialog.window?.setBackgroundDrawableResource(R.drawable.bg_custom_dialog)
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.9).toInt(),
+            (resources.displayMetrics.heightPixels * 0.8).toInt()
+        )
+
+        dialog.show()
+
+        // DEBUG 5: Print setelah dialog show
+        println("DEBUG: Dialog shown successfully")
+
+        // PERBAIKAN 6: Tampilkan keyboard otomatis setelah dialog show
+        etSearch.postDelayed({
+            println("DEBUG: Showing keyboard...")
+            etSearch.requestFocus()
+            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(etSearch, InputMethodManager.SHOW_IMPLICIT)
+        }, 300)
+
+        // PERBAIKAN 7: Setup negative button color
+        val negativeButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
+        negativeButton?.setTextColor(ContextCompat.getColor(requireContext(), R.color.colorPrimary))
+
+        // DEBUG 6: Final check
+        println("DEBUG: Final check - customerList size: ${customerList.size}")
+        println("DEBUG: Final check - adapter item count: ${adapter.itemCount}")
+
+        // DEBUG 7: Check RecyclerView visibility setelah dialog tampil
+        recyclerViewCustomer.post {
+            println("DEBUG: RecyclerView final status:")
+            println("DEBUG:   - height: ${recyclerViewCustomer.height}")
+            println("DEBUG:   - width: ${recyclerViewCustomer.width}")
+            println("DEBUG:   - visibility: ${recyclerViewCustomer.visibility}")
+            println("DEBUG:   - child count: ${recyclerViewCustomer.childCount}")
+            println("DEBUG:   - isShown: ${recyclerViewCustomer.isShown}")
+        }
+
+        println("DEBUG: ===== END showCustomerDialog() =====")
+    }
+
+    private fun handleCustomerSelection(customer: Customer) {
+        autoFillCustomerData(customer)
+
+        // Optional: Tampilkan toast konfirmasi
+        Toast.makeText(
+            requireContext(),
+            "Pelanggan dipilih: ${customer.name}",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun clearCustomerFields() {
+        binding.etCustomerName.setText("")
+        binding.etPhone.setText("")
+        binding.etAddress.setText("")
+
+        // Focus ke field nama untuk input baru
+        binding.etCustomerName.requestFocus()
+
+        Toast.makeText(requireContext(), "Silakan input data pelanggan baru", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun autoFillCustomerData(customer: Customer) {
+        binding.etCustomerName.setText(customer.name)
+        binding.etPhone.setText(customer.phone)
+        binding.etAddress.setText(customer.address)
+    }
+
+    //region Handuk Size Selection
+    private fun showCustomHandukSizeDialog() {
+        if (counterManager.countHanduk == 0) {
+            Toast.makeText(requireContext(), "Tambahkan handuk terlebih dahulu", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_custom_header, null)
+        val recyclerView = RecyclerView(requireContext()).apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = CustomDialogAdapter(
+                handukSizeManager.getHandukSizes(),
+                handukSizeManager.selectedHandukSize
+            ) { selectedSize ->
+                handleHandukSizeSelection(selectedSize)
+            }
+
+            addItemDecoration(DividerItemDecoration(context, DividerItemDecoration.VERTICAL).apply {
+                setDrawable(ContextCompat.getDrawable(context, R.drawable.divider_custom)!!)
+            })
+        }
+
+        val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.CustomAlertDialogTheme)
+            .setCustomTitle(dialogView)
+            .setView(recyclerView)
+            .setNegativeButton("Batal") { d, _ -> d.dismiss() }
+            .create()
+
+        dialogView.findViewById<ImageButton>(R.id.btnClose).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.window?.setBackgroundDrawableResource(R.drawable.bg_custom_dialog)
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.9).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+        dialog.show()
+
+        val negativeButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
+        negativeButton?.setTextColor(ContextCompat.getColor(requireContext(), R.color.grey_600))
+    }
+
+    private fun handleHandukSizeSelection(selectedSize: HandukSize) {
+        handukSizeManager.selectedHandukSize = selectedSize.size
+        binding.etHandukSize.setText(selectedSize.size)
+        updateHandukPriceInfo()
+        calculateTotalPrice()
+    }
+    //endregion
+
+    //region Order Creation
     private fun validateInput(): Boolean {
-        with(binding) {
-            if (etCustomerName.text.toString().trim().isEmpty()) {
-                etCustomerName.error = "Nama pelanggan harus diisi"
-                return false
-            }
-            if (etPhone.text.toString().trim().isEmpty()) {
-                etPhone.error = "Nomor telepon harus diisi"
-                return false
-            }
-            if (etAddress.text.toString().trim().isEmpty()) {
-                etAddress.error = "Alamat harus diisi"
-                return false
-            }
-            if (etWeight.text.toString().trim().isEmpty()) {
-                etWeight.error = "Berat harus diisi"
-                return false
-            }
-
-            try {
-                val weight = etWeight.text.toString().toDouble()
-                if (weight <= 0) {
-                    etWeight.error = "Berat harus lebih dari 0"
-                    return false
-                }
-            } catch (e: NumberFormatException) {
-                etWeight.error = "Berat harus angka yang valid"
-                return false
-            }
-
-            if (etCompletionDate.text.toString().trim().isEmpty()) {
-                tilCompletionDate.error = "Tanggal selesai harus diisi"
-                return false
-            }
-
-            if (completionDate != null) {
-                val daysDifference = calculateDaysDifference(selectedDateCalendar!!)
-                if (daysDifference < 0) {
-                    tilCompletionDate.error = "Tanggal tidak boleh sebelum hari ini"
-                    return false
-                }
-                if (daysDifference > 4) {
-                    tilCompletionDate.error = "Maksimal 5 hari dari hari ini"
-                    return false
-                }
-            }
-
-            try {
-                val price = etPricePerKg.text.toString().toDouble()
-                if (price <= 0) {
-                    etPricePerKg.error = "Harga harus lebih dari 0"
-                    return false
-                }
-            } catch (e: NumberFormatException) {
-                etPricePerKg.error = "Harga harus angka yang valid"
-                return false
-            }
-
-            // VALIDASI UKURAN HANDUK JIKA ADA HANDUK
-            if (countHanduk > 0 && selectedHandukSize.isEmpty()) {
-                Toast.makeText(requireContext(), "Pilih ukuran handuk terlebih dahulu", Toast.LENGTH_SHORT).show()
-                return false
-            }
-
-            val totalPcs = countKaos + countCelana + countHanduk
-            if (totalPcs == 0) {
-                Toast.makeText(requireContext(), "Minimal pilih 1 item (Kaos, Celana, atau Handuk)", Toast.LENGTH_SHORT).show()
-                return false
+        return when (val result = orderValidator.validateInput(
+            customerName = binding.etCustomerName.text.toString(),
+            phone = binding.etPhone.text.toString(),
+            address = binding.etAddress.text.toString(),
+            weight = binding.etWeight.text.toString(),
+            completionDate = binding.etCompletionDate.text.toString(),
+            pricePerKg = binding.etPricePerKg.text.toString(),
+            countHanduk = counterManager.countHanduk,
+            selectedHandukSize = handukSizeManager.selectedHandukSize,
+            totalPcs = counterManager.getTotalPcs(),
+            selectedDateCalendar = selectedDateCalendar
+        )) {
+            is OrderValidator.ValidationResult.Success -> true
+            is OrderValidator.ValidationResult.Error -> {
+                Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                false
             }
         }
-        return true
     }
 
     private fun createOrder() {
@@ -797,21 +687,20 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         val address = binding.etAddress.text.toString().trim()
         val weight = binding.etWeight.text.toString().toDouble()
         val pricePerKg = binding.etPricePerKg.text.toString().toDouble()
-        val totalPcs = countKaos + countCelana + countHanduk
+        val totalPcs = counterManager.getTotalPcs()
 
-        val daysDifference = selectedDateCalendar?.let { calculateDaysDifference(it) } ?: 0
+        val daysDifference = selectedDateCalendar?.let { DateHelper.calculateDaysDifference(it) } ?: 0
         val serviceType = when (daysDifference) {
             0 -> "express"
             1 -> "next_day"
             else -> "regular"
         }
 
-        // Hitung harga handuk
-        var handukAdditionalPrice = 0
-        if (countHanduk > 0 && selectedHandukSize.isNotEmpty()) {
-            val handukPricePerPiece = getHandukPrice(selectedHandukSize, daysDifference)
-            handukAdditionalPrice = countHanduk * handukPricePerPiece
-        }
+        val handukAdditionalPrice = PriceCalculator.calculateHandukPrice(
+            counterManager.countHanduk,
+            handukSizeManager.selectedHandukSize,
+            daysDifference
+        )
 
         val orderRequest = OrderRequest(
             customerName = customerName,
@@ -821,75 +710,42 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
             pricePerKg = pricePerKg,
             completionDate = completionDate,
             serviceType = serviceType,
-            kaosQty = countKaos,
-            celanaQty = countCelana,
-            handukQty = countHanduk,
-            handukSize = selectedHandukSize, // Tambahkan ukuran handuk
-            handukPrice = handukAdditionalPrice, // Tambahkan harga handuk
+            kaosQty = counterManager.countKaos,
+            celanaQty = counterManager.countCelana,
+            handukQty = counterManager.countHanduk,
+            handukSize = handukSizeManager.selectedHandukSize,
+            handukPrice = handukAdditionalPrice,
             totalPcs = totalPcs
         )
 
-        LoadingUtils.showLoading(binding.lottieProgress)
-        binding.progressOverlay.visibility = View.VISIBLE
-        binding.btnSaveOrder.isEnabled = false
-        setInputEnabled(false)
+        uiStateManager.setInputEnabled(false)
 
-        (requireActivity().application as App).orderRepository.createOrder(orderRequest) { result ->
-            requireActivity().runOnUiThread {
-                LoadingUtils.hideLoading(binding.lottieProgress)
-                binding.progressOverlay.visibility = View.GONE
-                binding.btnSaveOrder.isEnabled = true
-                setInputEnabled(true)
-
-                when {
-                    result.isSuccess -> {
-                        val order = result.getOrNull()
-                        Toast.makeText(
-                            requireContext(),
-                            "Order berhasil dibuat${if (order?.id ?: 0 < 0) " (Offline)" else ""}",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        parentFragmentManager.popBackStack()
-                    }
-                    else -> {
-                        val errorMessage = result.exceptionOrNull()?.message ?: "Gagal membuat order"
-                        Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show()
-                    }
-                }
+        orderCreator.createOrder(
+            orderRequest = orderRequest,
+            onLoading = { loading ->
+                uiStateManager.setLoading(loading)
+            },
+            onSuccess = { order ->
+                handleOrderSuccess(order)
+            },
+            onError = { errorMessage ->
+                handleOrderError(errorMessage)
             }
-        }
+        )
     }
 
-    // MODIFIKASI FUNCTION INI - Set input enabled
-    private fun setInputEnabled(enabled: Boolean) {
-        with(binding) {
-            etCustomerName.isEnabled = enabled
-            etPhone.isEnabled = enabled
-            etAddress.isEnabled = enabled
-            etWeight.isEnabled = enabled
-            etPricePerKg.isEnabled = enabled
-            etCompletionDate.isEnabled = enabled
-            etHandukSize.isEnabled = enabled // Tambahkan ini
-            btnSaveOrder.isEnabled = enabled
-
-            btnPlusKaos.isEnabled = enabled
-            btnMinusKaos.isEnabled = enabled
-            btnPlusCelana.isEnabled = enabled
-            btnMinusCelana.isEnabled = enabled
-            btnPlusHanduk.isEnabled = enabled
-            btnMinusHanduk.isEnabled = enabled
-        }
+    private fun handleOrderSuccess(order: Order?) {
+        uiStateManager.setInputEnabled(true)
+        val message = "Order berhasil dibuat${if (order?.id ?: 0 < 0) " (Offline)" else ""}"
+        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        parentFragmentManager.popBackStack()
     }
 
-    private fun setupLottieAnimation() {
-        binding.lottieProgress.setAnimation(R.raw.loading_animation)
-        binding.lottieProgress.loop(true)
+    private fun handleOrderError(errorMessage: String) {
+        uiStateManager.setInputEnabled(true)
+        Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show()
     }
-
-    private fun setupToolbar() {
-        binding.toolbar.setNavigationIcon(R.drawable.ic_arrow_back)
-        binding.toolbar.title = "Tambah Order Laundry"
-    }
+    //endregion
 
     override fun onDestroyView() {
         super.onDestroyView()
