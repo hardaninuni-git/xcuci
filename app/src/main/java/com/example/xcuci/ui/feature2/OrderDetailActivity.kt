@@ -505,6 +505,17 @@ class OrderDetailActivity : AppCompatActivity() {
             if (order.isOfflineOrder()) {
                 tvStatus.text = "${getStatusText(order.status)} ⚡"
             }
+            // PERBAIKAN: Sembunyikan tombol update status jika order sudah selesai
+            updateStatusButtonVisibility(order.status)
+        }
+    }
+
+    private fun updateStatusButtonVisibility(status: String) {
+        val isComplete = status.equals("completed", ignoreCase = true)
+        if (isComplete) {
+            binding.btnUpdateStatus.visibility = View.GONE
+        } else {
+            binding.btnUpdateStatus.visibility = View.VISIBLE
         }
     }
 

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Search Box -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:startIconDrawable="@drawable/ic_search"
+        app:boxBackgroundMode="outline"
+        app:placeholderText="Cari order...">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etSearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Cari berdasarkan nama atau telepon"
+            android:inputType="text"
+            android:maxLines="1" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Tab Layout -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorPrimary"
+        app:tabTextColor="@color/white"
+        app:tabSelectedTextColor="@color/white"
+        app:tabIndicatorColor="@color/white"
+        app:tabMode="fixed"
+        app:tabGravity="fill" />
+
+    <!-- Loading Animation -->
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/lottieProgress"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_gravity="center"
+        android:visibility="visible" />
+
+    <!-- ViewPager2 untuk tab content -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+
+
+    <!-- Empty State -->
+    <LinearLayout
+        android:id="@+id/emptyState"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@drawable/ic_order_empety"
+            android:contentDescription="Tidak ada order" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tidak ada order"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Belum ada order yang ditemukan"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

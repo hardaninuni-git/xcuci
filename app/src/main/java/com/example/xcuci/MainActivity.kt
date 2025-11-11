@@ -1,25 +1,15 @@
 package com.example.xcuci
 
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.xcuci.data.model.Order
-import com.example.xcuci.data.repository.RetrofitClient
 import com.example.xcuci.databinding.ActivityMainBinding
-import com.example.xcuci.ui.adapter.OrderAdapter
-import com.example.xcuci.ui.feature1.AddOrderActivity
-import com.example.xcuci.ui.feature2.OrderDetailActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
-import com.example.xcuci.data.local.database.AppDatabase
-import com.example.xcuci.data.repository.OrderRepository
 import com.example.xcuci.ui.feature1.AddOrderFragment
 import com.example.xcuci.ui.feature1.OrdersFragment
-import com.example.xcuci.ui.feature3.SettingsActivity
 import com.example.xcuci.ui.feature3.SettingsFragment
-import com.example.xcuci.ui.feature4.PlaceholderFragment
+import com.example.xcuci.ui.feature4.HistoryOrderFragment
 
 class MainActivity : AppCompatActivity() {
 
@@ -30,6 +20,7 @@ class MainActivity : AppCompatActivity() {
         private const val ORDERS_FRAGMENT_TAG = "orders_fragment"
         private const val CUSTOMERS_FRAGMENT_TAG = "customers_fragment"
         private const val REPORTS_FRAGMENT_TAG = "reports_fragment"
+        private const val HISTORY_FRAGMENT_TAG = "history_fragment"
         private const val ADD_ORDER_FRAGMENT_TAG = "add_order_fragment"
     }
 
@@ -63,6 +54,12 @@ class MainActivity : AppCompatActivity() {
                     }
                     true
                 }
+                R.id.nav_history -> {
+                    if (currentFragmentTag != HISTORY_FRAGMENT_TAG) {
+                        showFragment(HistoryOrderFragment(), HISTORY_FRAGMENT_TAG, addToBackStack = false)
+                    }
+                    true
+                }
                 R.id.nav_reports -> {
                     if (currentFragmentTag != REPORTS_FRAGMENT_TAG) {
                         showFragment(SettingsFragment(), REPORTS_FRAGMENT_TAG, addToBackStack = false)
@@ -88,12 +85,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         transaction.commit()
-    }
-
-    private fun showPlaceholderFragment(title: String) {
-        val fragment = PlaceholderFragment.newInstance(title)
-        showFragment(fragment, "placeholder_${System.currentTimeMillis()}")
-        Toast.makeText(this, "$title - Coming Soon", Toast.LENGTH_SHORT).show()
     }
 
     private fun setupFab() {
@@ -137,6 +128,7 @@ class MainActivity : AppCompatActivity() {
             when (fragment) {
                 is OrdersFragment -> currentFragmentTag = ORDERS_FRAGMENT_TAG
                 is AddOrderFragment -> currentFragmentTag = CUSTOMERS_FRAGMENT_TAG
+                is HistoryOrderFragment -> currentFragmentTag = HISTORY_FRAGMENT_TAG
                 is SettingsFragment -> currentFragmentTag = REPORTS_FRAGMENT_TAG
             }
 
@@ -149,6 +141,7 @@ class MainActivity : AppCompatActivity() {
         when (currentFragmentTag) {
             ORDERS_FRAGMENT_TAG -> binding.bottomNavigation.selectedItemId = R.id.nav_orders
             CUSTOMERS_FRAGMENT_TAG -> binding.bottomNavigation.selectedItemId = R.id.nav_customers
+            HISTORY_FRAGMENT_TAG -> binding.bottomNavigation.selectedItemId = R.id.nav_history
             REPORTS_FRAGMENT_TAG -> binding.bottomNavigation.selectedItemId = R.id.nav_reports
         }
     }

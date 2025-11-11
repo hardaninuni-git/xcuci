@@ -11,6 +11,11 @@
         android:title="Customers" />
 
     <item
+        android:id="@+id/nav_history"
+        android:icon="@drawable/ic_sync"
+        android:title="History" />
+
+    <item
         android:id="@+id/nav_reports"
         android:icon="@drawable/ic_info"
         android:title="Reports" />

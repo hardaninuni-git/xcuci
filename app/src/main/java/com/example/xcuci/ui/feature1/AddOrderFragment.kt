@@ -421,7 +421,6 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
             Log.d("XBZ", "loadRecentCustomersAsync ${customers.size}")
             customerList = customers
 
-
             // Debug: Print customer names
             customers.forEachIndexed { index, customer ->
                 Log.d("XBZ", "customers.forEachIndexed $index: ${customer.name} - ${customer.phone}")
