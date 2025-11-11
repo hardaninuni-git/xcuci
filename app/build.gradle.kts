@@ -77,6 +77,9 @@ dependencies {
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
 
+    // Search Bar
+    implementation(libs.materialsearchbar)
+
     implementation("com.github.anggastudio:Printama:1.0.6")
 
     testImplementation(libs.junit)

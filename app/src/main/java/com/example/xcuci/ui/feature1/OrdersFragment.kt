@@ -1,5 +1,6 @@
 package com.example.xcuci.ui.feature1
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -80,6 +81,7 @@ class OrdersFragment : Fragment() {
         binding.recyclerViewOrders.visibility = View.VISIBLE
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun loadOrders() {
         binding.swipeRefresh.isRefreshing = true
         showLoading()
@@ -88,9 +90,14 @@ class OrdersFragment : Fragment() {
             activity?.runOnUiThread {
                 binding.swipeRefresh.isRefreshing = false
                 hideLoading()
+                // FILTER: Hanya ambil orders dengan status "pending"
+                val pendingOrders = orders.filter { order ->
+                    order.status.equals("pending", ignoreCase = true)
+                }
 
                 orderList.clear()
-                orderList.addAll(orders)
+                orderList.addAll(pendingOrders) // GUNAKAN pendingOrders untuk menampilkan status pending
+//                orderList.addAll(orders)
                 orderAdapter.notifyDataSetChanged()
 
                 if (orders.isEmpty()) {

@@ -6,25 +6,16 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- Search Box -->
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tilSearch"
+    <com.mancj.materialsearchbar.MaterialSearchBar
+        android:id="@+id/searchBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        app:startIconDrawable="@drawable/ic_search"
-        app:boxBackgroundMode="outline"
-        app:placeholderText="Cari order...">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etSearch"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Cari berdasarkan nama atau telepon"
-            android:inputType="text"
-            android:maxLines="1" />
-
-    </com.google.android.material.textfield.TextInputLayout>
+        android:paddingTop="16dp"
+        android:layout_margin="8dp"
+        app:mt_speechMode="false"
+        app:mt_hint="Cari order..."
+        app:mt_maxSuggestionsCount="5"
+        app:mt_roundedSearchBarEnabled="true" />
 
     <!-- Tab Layout -->
     <com.google.android.material.tabs.TabLayout
@@ -52,8 +43,6 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
-
-
 
     <!-- Empty State -->
     <LinearLayout
