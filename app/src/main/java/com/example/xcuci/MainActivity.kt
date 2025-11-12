@@ -2,6 +2,7 @@ package com.example.xcuci
 
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import com.example.xcuci.databinding.ActivityMainBinding
 import androidx.appcompat.app.AppCompatDelegate
@@ -32,11 +33,31 @@ class MainActivity : AppCompatActivity() {
 
         setupNavigation()
         setupFab()
+        setupBackPressedHandler()
 
         // Load default fragment (OrdersFragment)
         if (savedInstanceState == null) {
             showFragment(OrdersFragment(), ORDERS_FRAGMENT_TAG, addToBackStack = false)
         }
+    }
+
+    // ✅ MODERN: Gunakan OnBackPressedDispatcher
+    private fun setupBackPressedHandler() {
+        val onBackPressedCallback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Cek jika ada fragment di back stack
+                if (supportFragmentManager.backStackEntryCount > 0) {
+                    // Handle back stack navigation
+                    handleBackStackNavigation()
+                } else {
+                    // Double back press to exit
+                    handleExitApp()
+                }
+            }
+        }
+
+        // Register the callback
+        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
     }
 
     private fun setupNavigation() {
@@ -102,17 +123,6 @@ class MainActivity : AppCompatActivity() {
         binding.bottomNavigation.selectedItemId = R.id.nav_customers
     }
 
-    override fun onBackPressed() {
-        // Cek jika ada fragment di back stack
-        if (supportFragmentManager.backStackEntryCount > 0) {
-            // Handle back stack navigation
-            handleBackStackNavigation()
-        } else {
-            // Double back press to exit
-            handleExitApp()
-        }
-    }
-
     private fun handleBackStackNavigation() {
         // Pop back stack
         supportFragmentManager.popBackStack()
@@ -153,11 +163,13 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Tekan kembali sekali lagi untuk keluar", Toast.LENGTH_SHORT).show()
                 backPressedTime = System.currentTimeMillis()
             } else {
-                super.onBackPressed()
+                // ✅ GUNAKAN finish() BUKAN super.onBackPressed()
+                finish()
             }
         } else {
             // Bukan root activity, langsung back press normal
-            super.onBackPressed()
+            // ✅ GUNAKAN finish() BUKAN super.onBackPressed()
+            finish()
         }
     }
 
