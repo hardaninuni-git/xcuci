@@ -3,20 +3,20 @@
     <item
         android:id="@+id/nav_orders"
         android:icon="@drawable/ic_orders"
-        android:title="Orders" />
+        android:title="@string/nav_orders" />
 
     <item
         android:id="@+id/nav_customers"
         android:icon="@drawable/ic_person"
-        android:title="Customers" />
+        android:title="@string/nav_customers" />
 
     <item
         android:id="@+id/nav_history"
         android:icon="@drawable/ic_sync"
-        android:title="History" />
+        android:title="@string/nav_history" />
 
     <item
         android:id="@+id/nav_reports"
         android:icon="@drawable/ic_info"
-        android:title="Reports" />
+        android:title="@string/nav_reports" />
 </menu>

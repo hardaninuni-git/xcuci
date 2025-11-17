@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Info -->
+    <string name="app_name">Yuma Laundry</string>
+    <string name="format_order_id">ORDER-# %1$d</string>
+    <string name="format_weight">%1$.1f kg</string>
+    <string name="format_price_per_kg">Rp %1$s/kg</string>
+    <string name="format_total_price">Rp %1$s</string>
+    <string name="item_qty">%1$d pcs</string>
+
+    <!-- Navigation -->
+    <string name="nav_orders">Orders</string>
+    <string name="nav_customers">Customers</string>
+    <string name="nav_history">History</string>
+    <string name="nav_reports">Reports</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_auto_sync">Auto Sync</string>
+    <string name="settings_printer">Printer Settings</string>
+    <string name="settings_default_price">Default Price per Kg</string>
+    <string name="settings_about">About App</string>
+    <string name="settings_help">Help and Support</string>
+
+    <!-- Themes -->
+    <string name="theme_light">Light Mode</string>
+    <string name="theme_dark">Dark Mode</string>
+    <string name="theme_system">System Default</string>
+
+    <!-- Common -->
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="add">Add</string>
+
+    <!-- Orders -->
+    <string name="order_id">Order ID</string>
+    <string name="customer_name">Customer Name</string>
+    <string name="phone">Phone</string>
+    <string name="address">Address</string>
+    <string name="weight">Weight</string>
+    <string name="price_per_kg">Price per Kg</string>
+    <string name="total_price">Total Price</string>
+    <string name="status">Status</string>
+    <string name="completion_date">Completion Date</string>
+
+    <!-- Order Status -->
+    <string name="status_pending">Pending</string>
+    <string name="status_processing">Processing</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_cancelled">Cancelled</string>
+
+    <!-- Messages -->
+    <string name="msg_order_saved">Order saved successfully</string>
+    <string name="msg_order_updated">Order updated successfully</string>
+    <string name="msg_order_deleted">Order deleted successfully</string>
+    <string name="msg_confirm_delete">Are you sure you want to delete this order?</string>
+    <string name="msg_no_orders">No orders found</string>
+    <string name="msg_no_internet">No internet connection</string>
+
+    <!-- Search -->
+    <string name="search_hint">Search by name, phone, or order ID</string>
+    <string name="search">Search</string>
+
+    <!-- Empty States -->
+    <string name="empty_orders">No orders yet</string>
+    <string name="empty_customers">No customers yet</string>
+    <string name="empty_history">No history yet</string>
+
+    <!-- Dialog Titles -->
+    <string name="dialog_language_title">Select Language</string>
+    <string name="dialog_theme_title">Select Theme</string>
+    <string name="dialog_confirm_title">Confirmation</string>
+    <string name="dialog_error_title">Error</string>
+
+    <!-- Language Names -->
+    <string name="language_indonesian">Indonesian</string>
+    <string name="language_english">English</string>
+
+    <!-- Toolbar Names -->
+    <string name="toolbar_new_order">Add Order</string>
+    <string name="toolbar_detail_order">Detail Order</string>
+</resources>

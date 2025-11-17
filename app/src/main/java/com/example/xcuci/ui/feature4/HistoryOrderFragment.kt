@@ -70,7 +70,7 @@ class HistoryOrderFragment : Fragment() {
         }.attach()
 
         // ⭐ INI YANG PENTING: Set default tab ke Selesai (position 1)
-        binding.viewPager.setCurrentItem(1, false)
+//        binding.viewPager.setCurrentItem(1, false)
     }
 
     private fun setupModernSearch(){

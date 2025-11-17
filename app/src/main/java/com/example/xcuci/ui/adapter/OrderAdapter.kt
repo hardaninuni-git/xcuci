@@ -91,7 +91,7 @@ class OrderAdapter(
                 if (hasItemDetails) {
                     // Tampilkan Kaos jika ada
                     if (order.kaosQty > 0) {
-                        layoutKaosDetail.visibility = View.VISIBLE
+                        layoutKaosDetail.visibility = View.GONE
                         tvKaosQty.text = "${order.kaosQty} pcs"
                     }
 

@@ -104,6 +104,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         setupLottieAnimation()
         setupCustomerSelection()
         setupHandukSizeSelection()
+        setupWeightTextWatcher()
         calculateTotalPrice()
         updateTotalPcs()
     }
@@ -224,6 +225,26 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         }
     }
 
+    private fun setupWeightTextWatcher() {
+        binding.etWeight.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                // Tidak perlu diisi
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                // Tidak perlu diisi
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                // ✅ LANGSUNG HITUNG TOTAL HARGA KETIKA BERAT BERUBAH
+                calculateTotalPrice()
+
+                // Optional: Clear error jika ada
+                binding.tilWeight.error = null
+            }
+        })
+    }
+
     private fun setupHandukSizeSelection() {
         binding.etHandukSize.setOnClickListener { showCustomHandukSizeDialog() }
         binding.tilHandukSize.setEndIconOnClickListener { showCustomHandukSizeDialog() }
@@ -341,7 +362,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         )
 
         datePickerDialog.datePicker.minDate = System.currentTimeMillis() - 1000
-        val maxDateCalendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, 4) }
+        val maxDateCalendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, 5) }
         datePickerDialog.datePicker.maxDate = maxDateCalendar.timeInMillis
         datePickerDialog.show()
     }
@@ -358,7 +379,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
             return
         }
 
-        if (daysDifference > 4) {
+        if (daysDifference > 5) {
             Toast.makeText(requireContext(), "Maksimal 5 hari dari hari ini", Toast.LENGTH_SHORT).show()
             return
         }

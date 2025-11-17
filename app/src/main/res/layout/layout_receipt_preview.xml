@@ -10,7 +10,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="LAUNDRY XCUCI"
+        android:text="YUMA LAUNDRY"
         android:textColor="@android:color/black"
         android:textSize="18sp"
         android:textStyle="bold"
@@ -95,7 +95,7 @@
         android:id="@+id/tvReceiptCustomerName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Nama Customer"
+        android:text="@string/customer_name"
         android:textColor="@android:color/black"
         android:textSize="12sp" />
 
@@ -208,12 +208,13 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Detail Per Item:"
+        android:text="Detail Item:"
         android:textColor="@android:color/black"
         android:textSize="12sp"
         android:textStyle="bold" />
 
     <LinearLayout
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
@@ -236,6 +237,7 @@
     </LinearLayout>
 
     <LinearLayout
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
@@ -258,6 +260,7 @@
     </LinearLayout>
 
     <LinearLayout
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
@@ -343,7 +346,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="www.xcuci.com"
+        android:text="085694245178"
         android:textColor="@android:color/black"
         android:textSize="10sp"
         android:gravity="center"

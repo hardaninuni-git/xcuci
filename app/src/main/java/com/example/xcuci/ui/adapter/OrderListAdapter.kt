@@ -86,7 +86,7 @@ class OrderListAdapter(
 
                 if (hasItemDetails) {
                     if (order.kaosQty > 0) {
-                        layoutKaosDetail.visibility = View.VISIBLE
+                        layoutKaosDetail.visibility = View.GONE
                         tvKaosQty.text = "${order.kaosQty} pcs"
                     }
                     if (order.celanaQty > 0) {

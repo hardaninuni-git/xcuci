@@ -28,11 +28,12 @@ class PriceCalculator {
 
         fun getPricePerKgByDays(daysDifference: Int): Int {
             return when (daysDifference) {
-                0 -> 15000
-                1 -> 12000
-                2 -> 10000
-                3 -> 8000
-                4 -> 7000
+                0 -> 20000
+                1 -> 15000
+                2 -> 12000
+                3 -> 10000
+                4 -> 8000
+                5 -> 6000
                 else -> 6000
             }
         }

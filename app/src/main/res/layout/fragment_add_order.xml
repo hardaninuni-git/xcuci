@@ -240,12 +240,13 @@
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/etPricePerKg"
+                                android:focusable="false"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:hint="Harga per Kg"
                                 android:inputType="numberDecimal"
                                 android:maxLines="1"
-                                android:text="5000"
+                                android:text="20000"
                                 android:textColor="@color/black"
                                 android:textColorHint="@color/grey_600"
                                 android:textSize="14sp" />
@@ -314,7 +315,7 @@
                                 <TextView
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:text="Total Biaya"
+                                    android:text="@string/total_price"
                                     android:textColor="@android:color/white"
                                     android:textSize="12sp"
                                     android:textStyle="normal" />
@@ -371,7 +372,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Detail Per Item"
+                            android:text="Detail Item"
                             android:textColor="@color/black"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -390,7 +391,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Kaos"
+                            android:text="Jumlah Barang"
                             android:textColor="@color/black"
                             android:textSize="14sp" />
 
@@ -444,6 +445,7 @@
 
                     <!-- Celana -->
                     <LinearLayout
+                        android:visibility="gone"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
@@ -508,6 +510,7 @@
 
                     <!-- Handuk -->
                     <LinearLayout
+                        android:visibility="gone"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"

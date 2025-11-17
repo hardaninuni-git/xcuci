@@ -229,6 +229,7 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/tvPriceTitle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Harga Default per Kg"
@@ -256,9 +257,9 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Data Management -->
+        <!-- Bahasa -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardDataManagement"
+            android:id="@+id/cardBahasa"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
@@ -279,11 +280,12 @@
                     android:tint="?attr/colorPrimary" />
 
                 <TextView
+                    android:id="@+id/tvLanguageTitle"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
-                    android:text="Kelola Data"
+                    android:text="@string/settings_language"
                     android:textColor="@color/black"
                     android:textSize="16sp"
                     android:textStyle="bold" />

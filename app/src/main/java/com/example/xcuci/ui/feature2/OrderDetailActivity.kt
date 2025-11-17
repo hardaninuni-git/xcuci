@@ -360,17 +360,24 @@ class OrderDetailActivity : AppCompatActivity() {
             return
         }
 
+        val savedPrinter = Printama.getSavedPrinterName(this)
+        if (savedPrinter.isNullOrEmpty()) {
+            Toast.makeText(this, "Belum ada printer tersambung", Toast.LENGTH_SHORT).show()
+            showPrinterList()
+            return
+        }
+
         LoadingUtils.showLoading(binding.lottieProgress)
 
+        Printama.with(this).connect { printer ->
         try {
-            val printama = Printama.with(this)
-
             // Print receipt content
             getReceiptContent(order).forEach { line ->
-                printama.printTextln(line)
+                printer.printTextln(line)
             }
 
-            printama.addNewLine(3)
+            printer.addNewLine(3)
+            printer.feedPaper()
 
             runOnUiThread {
                 LoadingUtils.hideLoading(binding.lottieProgress)
@@ -382,12 +389,12 @@ class OrderDetailActivity : AppCompatActivity() {
                 LoadingUtils.hideLoading(binding.lottieProgress)
                 showPrintErrorDialog("Print gagal: ${e.message}")
             }
-        }
+        }}
     }
 
     private fun getReceiptContent(order: Order): List<String> {
         return listOf(
-            "LAUNDRY XCUCI",
+            "YUMA LAUNDRY",
             "========================",
             "No. Order : ORDER-#${order.id}",
             "Tanggal   : ${order.createdAt.formatCompletionDate()}",
@@ -404,14 +411,15 @@ class OrderDetailActivity : AppCompatActivity() {
             "Total     : Rp ${numberFormat.format(order.totalPrice)}",
             "------------------------",
             "DETAIL ORDER:",
-            "Kaos      : ${order.kaosQty} pcs",
-            "Celana    : ${order.celanaQty} pcs",
-            "Handuk    : ${order.handukQty} pcs",
-            "Total Item: ${numberFormat.format(order.kaosQty + order.celanaQty + order.handukQty)} pcs",
+//            "Kaos      : ${order.kaosQty} pcs",
+//            "Celana    : ${order.celanaQty} pcs",
+//            "Handuk    : ${order.handukQty} pcs",
+//            "Total Item: ${numberFormat.format(order.kaosQty + order.celanaQty + order.handukQty)} pcs",
+            "Total Item: ${order.kaosQty} pcs",
             "Selesai   : ${order.completionDate.formatCompletionDate()}",
             "========================",
             "Terima kasih",
-            "www.xcuci.com"
+            "085694245178"
         )
     }
 

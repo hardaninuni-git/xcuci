@@ -53,7 +53,7 @@ class OrderValidator(private val context: Context) {
             if (daysDifference < 0) {
                 return ValidationResult.Error("Tanggal tidak boleh sebelum hari ini")
             }
-            if (daysDifference > 4) {
+            if (daysDifference > 5) {
                 return ValidationResult.Error("Maksimal 5 hari dari hari ini")
             }
         }
