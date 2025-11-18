@@ -8,7 +8,8 @@ data class OrderRequest(
     val pricePerKg: Double,
     val status: String? = null, // Tambahkan field status
     val completionDate: String?,
-    val serviceType: String? = null,
+    val serviceType: String, // express, next_day, regular
+    val layananType: String, // ✅ TAMBAHKAN: cuci_dan_setrika, setrika, cuci
     // TAMBAHKAN FIELD BARU - HAPUS DEFAULT VALUES
     val kaosQty: Int, // HAPUS = 0
     val celanaQty: Int, // HAPUS = 0

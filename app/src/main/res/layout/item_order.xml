@@ -219,6 +219,33 @@
             android:layout_marginTop="12dp"
             android:visibility="visible">
 
+            <!-- Tipe Layanan -->
+            <LinearLayout
+                android:id="@+id/layoutTipeLayanan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Tipe Layanan:"
+                    android:textColor="#666666"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvTipeLayanan"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Setrika"
+                    android:textColor="#666666"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
             <!-- Kaos Detail -->
             <LinearLayout
                 android:id="@+id/layoutKaosDetail"

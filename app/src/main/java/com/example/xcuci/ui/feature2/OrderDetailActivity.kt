@@ -346,7 +346,8 @@ class OrderDetailActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.tvReceiptPricePerKg).text = "Rp ${numberFormat.format(order.pricePerKg)}"
             findViewById<TextView>(R.id.tvReceiptTotalPrice).text = "Rp ${numberFormat.format(order.totalPrice)}"
             val totalPcs = order.kaosQty + order.celanaQty + order.handukQty
-            findViewById<TextView>(R.id.tvReceiptKaos).text = "${order.kaosQty} pcs"
+//            findViewById<TextView>(R.id.tvReceiptKaos).text = "${order.kaosQty} pcs"
+            findViewById<TextView>(R.id.tvReceiptKaos).text = "${order.layananType}"
             findViewById<TextView>(R.id.tvReceiptCelana).text = "${order.celanaQty} pcs"
             findViewById<TextView>(R.id.tvReceiptHanduk).text = "${order.handukQty} pcs"
             findViewById<TextView>(R.id.tvReceiptTotalItem).text = "$totalPcs pcs"
@@ -411,6 +412,7 @@ class OrderDetailActivity : AppCompatActivity() {
             "Total     : Rp ${numberFormat.format(order.totalPrice)}",
             "------------------------",
             "DETAIL ORDER:",
+            "Tipe Layanan: ${order.layananType}",
 //            "Kaos      : ${order.kaosQty} pcs",
 //            "Celana    : ${order.celanaQty} pcs",
 //            "Handuk    : ${order.handukQty} pcs",
@@ -539,7 +541,8 @@ class OrderDetailActivity : AppCompatActivity() {
             if (punyaItemDetails) {
                 if (order.kaosQty > 0){
                     layoutKaosDetail.visibility = View.VISIBLE
-                    tvKaosQty.text = getString(R.string.item_qty, order.kaosQty)
+//                    tvKaosQty.text = getString(R.string.item_qty, order.kaosQty)
+                    tvKaosQty.text = "${order.layananType}"
                 }
                 if (order.celanaQty > 0){
                     layoutCelanaDetail.visibility = View.VISIBLE

@@ -106,6 +106,8 @@ class OrderRepository(
             pricePerKg = order.pricePerKg,
             completionDate = order.completionDate,
             status = order.status,
+            serviceType = order.serviceType ?: "regular", // ✅ TAMBAHKAN SERVICE TYPE
+            layananType = order.layananType ?: "cuci_dan_setrika", // ✅ TAMBAHKAN LAYANAN TYPE
             // TAMBAHKAN FIELD BARU
             kaosQty = order.kaosQty,
             celanaQty = order.celanaQty,
@@ -224,6 +226,8 @@ class OrderRepository(
                 createdAt = getCurrentDateTime(),
                 updatedAt = getCurrentDateTime(),
                 completionDate = orderRequest.completionDate,
+                serviceType = orderRequest.serviceType, // ✅ TAMBAHKAN SERVICE TYPE
+                layananType = orderRequest.layananType, // ✅ TAMBAHKAN LAYANAN TYPE
                 // TAMBAHKAN FIELD BARU - INISIALISASI DENGAN NILAI 0
                 kaosQty = orderRequest.kaosQty,
                 celanaQty = orderRequest.celanaQty,
@@ -287,6 +291,8 @@ private fun OrderEntity.toOrder(): Order {
         completionDate = this.completionDate, // TAMBAHKAN INI
         createdAt = this.createdAt,
         updatedAt = this.updatedAt,
+        serviceType = this.serviceType, // ✅ TAMBAHKAN
+        layananType = this.layananType, // ✅ TAMBAHKAN
         // TAMBAHKAN FIELD BARU
         kaosQty = this.kaosQty,
         celanaQty = this.celanaQty,
@@ -309,6 +315,8 @@ private fun Order.toEntity(isSynced: Boolean = true): OrderEntity {
         completionDate = this.completionDate, // TAMBAHKAN INI
         createdAt = this.createdAt,
         updatedAt = this.updatedAt,
+        serviceType = this.serviceType, // ✅ TAMBAHKAN
+        layananType = this.layananType, // ✅ TAMBAHKAN
         isSynced = isSynced,
         // TAMBAHKAN FIELD BARU
         kaosQty = this.kaosQty,

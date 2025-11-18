@@ -61,6 +61,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
     private var selectedDateCalendar: Calendar? = null
     private var customerList: List<Customer> = emptyList()
     private val numberFormat = NumberFormat.getNumberInstance(Locale("id", "ID"))
+    private var selectedServiceType: String = "cuci_dan_setrika" // ✅ DEFAULT: Cuci dan Setrika
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentAddOrderBinding.inflate(inflater, container, false)
@@ -104,6 +105,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         setupLottieAnimation()
         setupCustomerSelection()
         setupHandukSizeSelection()
+        setupServiceTypeSelection()
         setupWeightTextWatcher()
         calculateTotalPrice()
         updateTotalPcs()
@@ -225,6 +227,28 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         }
     }
 
+    private fun setupServiceTypeSelection() {
+        // Set default value
+        binding.etTipeLayanan.setText("Cuci dan Setrika")
+
+        // Setup click listener untuk dropdown
+        binding.etTipeLayanan.setOnClickListener {
+            showServiceTypeDialog()
+        }
+
+        binding.tilTipeLayanan.setEndIconOnClickListener {
+            showServiceTypeDialog()
+        }
+
+        // Setup focus change untuk mencegah keyboard muncul
+        binding.etTipeLayanan.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                binding.etTipeLayanan.clearFocus()
+                showServiceTypeDialog()
+            }
+        }
+    }
+
     private fun setupWeightTextWatcher() {
         binding.etWeight.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -297,6 +321,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
             val pricePerKg = priceText.toDouble()
             val daysDifference = selectedDateCalendar?.let { DateHelper.calculateDaysDifference(it) } ?: 0
 
+            // ✅ GUNAKAN METHOD YANG SAMA UNTUK PERHITUNGAN
             val basePrice = PriceCalculator.calculateBasePrice(weight, pricePerKg)
             val handukAdditionalPrice = PriceCalculator.calculateHandukPrice(
                 counterManager.countHanduk,
@@ -314,16 +339,25 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
     }
 
     private fun updatePriceBreakdown(basePrice: Double, handukAdditionalPrice: Int, daysDifference: Int) {
-        val serviceType = PriceCalculator.getServiceTypeText(daysDifference)
+        val serviceTypeText = PriceCalculator.getServiceTypeText(daysDifference)
+        val layananText = when (selectedServiceType) {
+            "cuci_dan_setrika" -> "Cuci & Setrika"
+            "setrika" -> "Setrika"
+            "cuci" -> "Cuci"
+            else -> "Cuci & Setrika"
+        }
+
+        val pricePerKg = PriceCalculator.getPricePerKgByServiceType(daysDifference, selectedServiceType)
 
         if (counterManager.countHanduk > 0 && handukSizeManager.selectedHandukSize.isNotEmpty()) {
             val handukPricePerPiece = PriceCalculator.getHandukPrice(handukSizeManager.selectedHandukSize, daysDifference)
             binding.tilPricePerKg.helperText =
-                "Berat: ${numberFormat.format(basePrice)} + " +
+                "Layanan: $layananText ($serviceTypeText) - Rp ${numberFormat.format(pricePerKg)}/kg\n" +
+                        "Berat: ${numberFormat.format(basePrice)} + " +
                         "Handuk (${handukSizeManager.selectedHandukSize}): ${numberFormat.format(handukAdditionalPrice)} " +
                         "(${counterManager.countHanduk} × Rp ${numberFormat.format(handukPricePerPiece)})"
         } else {
-            binding.tilPricePerKg.helperText = "Layanan: $serviceType"
+            binding.tilPricePerKg.helperText = "Layanan: $layananText ($serviceTypeText) - Rp ${numberFormat.format(pricePerKg)}/kg"
         }
     }
 
@@ -362,7 +396,13 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         )
 
         datePickerDialog.datePicker.minDate = System.currentTimeMillis() - 1000
-        val maxDateCalendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, 5) }
+//        val maxDateCalendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, 5) }
+//        datePickerDialog.datePicker.maxDate = maxDateCalendar.timeInMillis
+        // ✅ SET MAX DATE BERDASARKAN TIPE LAYANAN
+        val maxDays = PriceCalculator.getMaxDaysByServiceType(selectedServiceType)
+        val maxDateCalendar = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_MONTH, maxDays)
+        }
         datePickerDialog.datePicker.maxDate = maxDateCalendar.timeInMillis
         datePickerDialog.show()
     }
@@ -373,14 +413,22 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         }
 
         val daysDifference = DateHelper.calculateDaysDifference(selectedCalendar)
+        // ✅ VALIDASI BATAS HARI BERDASARKAN TIPE LAYANAN
+        val maxDays = PriceCalculator.getMaxDaysByServiceType(selectedServiceType)
 
         if (daysDifference < 0) {
             Toast.makeText(requireContext(), "Tanggal tidak boleh sebelum hari ini", Toast.LENGTH_SHORT).show()
             return
         }
 
-        if (daysDifference > 5) {
-            Toast.makeText(requireContext(), "Maksimal 5 hari dari hari ini", Toast.LENGTH_SHORT).show()
+        if (daysDifference > maxDays) {
+            val serviceName = when (selectedServiceType) {
+                "cuci_dan_setrika" -> "Cuci dan Setrika"
+                "setrika" -> "Setrika"
+                "cuci" -> "Cuci"
+                else -> "Layanan"
+            }
+            Toast.makeText(requireContext(), "$serviceName maksimal $maxDays hari dari hari ini", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -395,14 +443,13 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
     }
 
     private fun updatePriceBasedOnDate(daysDifference: Int) {
-        val pricePerKg = PriceCalculator.getPricePerKgByDays(daysDifference)
+        // ✅ GUNAKAN METHOD YANG SAMA UNTUK KONSISTENSI
+        val pricePerKg = PriceCalculator.getPricePerKgByServiceType(daysDifference, selectedServiceType)
         binding.etPricePerKg.setText(pricePerKg.toString())
 
-        val serviceType = PriceCalculator.getServiceTypeText(daysDifference)
+        updatePriceHelperText(daysDifference) // ✅ GUNAKAN METHOD YANG SAMA
         updateHandukPriceInfo()
         calculateTotalPrice()
-
-        binding.tilPricePerKg.helperText = "Layanan: $serviceType"
     }
 
     private fun updateHandukPriceInfo() {
@@ -679,6 +726,84 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
     }
     //endregion
 
+    private fun showServiceTypeDialog() {
+        val serviceTypes = arrayOf("Cuci dan Setrika", "Setrika", "Cuci")
+
+        // Tentukan checked item berdasarkan pilihan saat ini
+        val checkedItem = when (selectedServiceType) {
+            "cuci_dan_setrika" -> 0
+            "setrika" -> 1
+            "cuci" -> 2
+            else -> 3
+        }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Pilih Tipe Layanan")
+            .setSingleChoiceItems(serviceTypes, checkedItem) { dialog, which ->
+                handleServiceTypeSelection(which)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Batal") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun handleServiceTypeSelection(selectedIndex: Int) {
+        when (selectedIndex) {
+            0 -> {
+                selectedServiceType = "cuci_dan_setrika"
+                binding.etTipeLayanan.setText("Cuci dan Setrika")
+            }
+            1 -> {
+                selectedServiceType = "setrika"
+                binding.etTipeLayanan.setText("Setrika")
+            }
+            2 -> {
+                selectedServiceType = "cuci"
+                binding.etTipeLayanan.setText("Cuci")
+            }
+        }
+
+        // Reset tanggal ketika ganti tipe layanan
+        resetDateSelection()
+
+        // ✅ UPDATE HARGA DENGAN SERVICE TYPE YANG BARU
+        updatePriceBasedOnServiceType()
+    }
+
+    private fun resetDateSelection() {
+        binding.etCompletionDate.setText("")
+        selectedDateCalendar = null
+        completionDate = null
+    }
+
+    private fun updatePriceBasedOnServiceType() {
+        val daysDifference = selectedDateCalendar?.let { DateHelper.calculateDaysDifference(it) } ?: 0
+
+        // Sesuaikan harga berdasarkan tipe layanan
+        val basePricePerKg = PriceCalculator.getPricePerKgByServiceType(daysDifference, selectedServiceType)
+
+        binding.etPricePerKg.setText(basePricePerKg.toString())
+        calculateTotalPrice()
+        // ✅ UPDATE HELPER TEXT UNTUK INFORMASI HARGA
+        updatePriceHelperText(daysDifference)
+    }
+
+    private fun updatePriceHelperText(daysDifference: Int) {
+        val serviceName = when (selectedServiceType) {
+            "cuci_dan_setrika" -> "Cuci & Setrika"
+            "setrika" -> "Setrika"
+            "cuci" -> "Cuci"
+            else -> "Cuci & Setrika"
+        }
+
+        val serviceTypeText = PriceCalculator.getServiceTypeText(daysDifference)
+        val pricePerKg = PriceCalculator.getPricePerKgByServiceType(daysDifference, selectedServiceType)
+
+        binding.tilPricePerKg.helperText = "Layanan: $serviceName ($serviceTypeText) - Rp ${numberFormat.format(pricePerKg)}/kg"
+    }
+
     //region Order Creation
     private fun validateInput(): Boolean {
         return when (val result = orderValidator.validateInput(
@@ -687,6 +812,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
             address = binding.etAddress.text.toString(),
             weight = binding.etWeight.text.toString(),
             completionDate = binding.etCompletionDate.text.toString(),
+            layananType = binding.etTipeLayanan.text.toString(),
             pricePerKg = binding.etPricePerKg.text.toString(),
             countHanduk = counterManager.countHanduk,
             selectedHandukSize = handukSizeManager.selectedHandukSize,
@@ -730,6 +856,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
             pricePerKg = pricePerKg,
             completionDate = completionDate,
             serviceType = serviceType,
+            layananType = selectedServiceType, // ✅ TAMBAHKAN SERVICE TYPE
             kaosQty = counterManager.countKaos,
             celanaQty = counterManager.countCelana,
             handukQty = counterManager.countHanduk,

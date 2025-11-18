@@ -68,6 +68,7 @@ class OrderListAdapter(
                 // Date
                 tvDate.text = "Tanggal: ${formatDate(order.createdAt)}"
                 tvCompletionDate.text = "Selesai: ${order.completionDate.formatCompletionDate()}"
+                tvTipeLayanan.text = "${order.layananType}"
 
                 // Item details
                 displayItemDetails(order)

@@ -15,7 +15,8 @@ class OrderValidator(private val context: Context) {
         countHanduk: Int,
         selectedHandukSize: String,
         totalPcs: Int,
-        selectedDateCalendar: Calendar?
+        selectedDateCalendar: Calendar?,
+        layananType: String? = null
     ): ValidationResult {
 
         if (customerName.trim().isEmpty()) {
@@ -73,6 +74,11 @@ class OrderValidator(private val context: Context) {
 
         if (totalPcs == 0) {
             return ValidationResult.Error("Minimal pilih 1 item (Kaos, Celana, atau Handuk)")
+        }
+
+        // Validasi tipe layanan
+        if (layananType.isNullOrEmpty()) {
+            return ValidationResult.Error("Pilih tipe layanan")
         }
 
         return ValidationResult.Success

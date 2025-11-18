@@ -30,6 +30,7 @@ class AddOrderActivity : AppCompatActivity() {
     private var countKaos = 0
     private var countCelana = 0
     private var countHanduk = 0
+    private var selectedServiceType: String = "cuci_dan_setrika" // ✅ DEFAULT: Cuci dan Setrika
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
@@ -398,6 +399,7 @@ class AddOrderActivity : AppCompatActivity() {
             pricePerKg = pricePerKg,
             completionDate = completionDate,
             serviceType = serviceType,
+            layananType = selectedServiceType, // ✅ TAMBAHKAN SERVICE TYPE
             // KIRIM NILAI 0 EXPLICITLY
             kaosQty = countKaos,
             celanaQty = countCelana,

@@ -43,6 +43,9 @@ data class OrderEntity(
     @ColumnInfo(name = "service_type")
     val serviceType: String? = null, // Tambahkan
 
+    @ColumnInfo(name = "layanan_type")
+    val layananType: String? = null, // Tambahkan
+
     @ColumnInfo(name = "is_synced")
     val isSynced: Boolean = false, // TAMBAHKAN KOMA DI SINI
 

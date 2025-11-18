@@ -189,6 +189,33 @@
 
                     </LinearLayout>
 
+                    <!-- Tipe Layanan -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilTipeLayanan"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        app:boxCornerRadiusBottomEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:endIconMode="custom"
+                        app:endIconDrawable="@drawable/ic_arrow_drop_down"
+                        app:errorEnabled="true">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etTipeLayanan"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Tipe Layanan"
+                            android:inputType="textCapCharacters|textPersonName"
+                            android:maxLines="1"
+                            android:textColor="@color/black"
+                            android:textColorHint="@color/grey_600"
+                            android:textSize="14sp" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
                     <!-- Weight and Price in Row -->
                     <LinearLayout
                         android:layout_width="match_parent"

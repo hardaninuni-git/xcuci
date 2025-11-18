@@ -12,7 +12,7 @@ import com.example.xcuci.data.local.entity.OrderEntity
 
 @Database(
     entities = [OrderEntity::class],
-    version = 4, // TINGKATKAN LAGI KE 4
+    version = 5, // TINGKATKAN LAGI KE 4
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
