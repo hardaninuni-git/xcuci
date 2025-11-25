@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Style untuk button lingkaran -->
+    <style name="CircleButtonStyle" parent="Widget.Material3.Button">
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:padding">0dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@android:color/white</item>
+    </style>
+
+    <style name="CircleButtonStyle.Update" parent="CircleButtonStyle">
+        <item name="backgroundTint">@color/colorOrange</item>
+    </style>
+
+    <style name="CircleButtonStyle.Delete" parent="CircleButtonStyle">
+        <item name="backgroundTint">@color/colorRed</item>
+    </style>
+
+    <style name="CircleButtonStyle.Print" parent="CircleButtonStyle">
+        <item name="backgroundTint">@color/colorGreen</item>
+    </style>
+
+    <style name="CircleButtonStyle.Share" parent="CircleButtonStyle">
+        <item name="backgroundTint">@color/colorBlue</item>
+    </style>
+</resources>

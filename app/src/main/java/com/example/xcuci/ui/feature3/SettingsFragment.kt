@@ -8,10 +8,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.xcuci.R
+import com.example.xcuci.databinding.DialogPriceSettingsBinding
 import com.example.xcuci.databinding.FragmentSettingsBinding
 import com.example.xcuci.utils.PreferenceManager
+import com.example.xcuci.utils.PriceCalculator
 import java.util.Locale
 
 class SettingsFragment : Fragment() {
@@ -44,19 +47,185 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupSettings() {
-        // Pindahkan logic settings dari SettingsActivity ke sini
-        // ... (logic settings yang sudah kita buat sebelumnya)
         updateUI()
     }
 
     private fun updateUI() {
         binding.tvLanguageTitle.text = getString(R.string.settings_language)
+        binding.tvPriceTitle.text = getString(R.string.settings_default_price)
     }
 
     private fun setupClickListeners() {
+        binding.cardDefaultPrice.setOnClickListener {
+            showPriceSettingsDialog()
+        }
         binding.cardBahasa.setOnClickListener {
             showLanguageSelectionDialog()
         }
+    }
+
+    private fun showPriceSettingsDialog() {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_price_settings, null)
+        val dialogBinding = com.example.xcuci.databinding.DialogPriceSettingsBinding.bind(dialogView)
+        setupPriceDialog(dialogBinding)
+        AlertDialog.Builder(requireContext())
+            .setTitle("Pengaturan Harga Layanan")
+            .setView(dialogView)
+            .setPositiveButton("Simpan") { dialog, _ ->
+                savePriceSettings(dialogBinding)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Batal", null)
+            .setNeutralButton("Reset Default") { dialog, _ ->
+                resetPriceToDefault()
+                setupPriceDialog(dialogBinding) // Refresh dialog dengan harga default
+                Toast.makeText(requireContext(), "Harga direset ke default", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
+    private fun setupPriceDialog(dialogBinding: DialogPriceSettingsBinding) {
+        val context = requireContext()
+        // Setup tab layout
+        dialogBinding.tabLayout.addTab(dialogBinding.tabLayout.newTab().setText("Cuci & Setrika"))
+        dialogBinding.tabLayout.addTab(dialogBinding.tabLayout.newTab().setText("Setrika Saja"))
+        dialogBinding.tabLayout.addTab(dialogBinding.tabLayout.newTab().setText("Cuci Saja"))
+        // Load initial data (Cuci & Setrika)
+        loadCuciDanSetrikaPrices(dialogBinding)
+
+        dialogBinding.tabLayout.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab) {
+                when (tab.position) {
+                    0 -> loadCuciDanSetrikaPrices(dialogBinding)
+                    1 -> loadSetrikaPrices(dialogBinding)
+                    2 -> loadCuciPrices(dialogBinding)
+                }
+            }
+            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+            override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+        })
+    }
+
+    private fun loadCuciDanSetrikaPrices(dialogBinding: com.example.xcuci.databinding.DialogPriceSettingsBinding) {
+        val context = requireContext()
+        val prices = PriceCalculator.getAllServiceTypePrices(context, "cuci_dan_setrika")
+
+        dialogBinding.serviceTitle.text = "Harga Cuci & Setrika (5 Hari)"
+
+        // Show all 6 days
+        dialogBinding.day5Container.visibility = View.VISIBLE
+
+        // Set prices
+        dialogBinding.etDay0.setText(prices[0].toString())
+        dialogBinding.etDay1.setText(prices[1].toString())
+        dialogBinding.etDay2.setText(prices[2].toString())
+        dialogBinding.etDay3.setText(prices[3].toString())
+        dialogBinding.etDay4.setText(prices[4].toString())
+        dialogBinding.etDay5.setText(prices[5].toString())
+    }
+
+    private fun loadSetrikaPrices(dialogBinding: com.example.xcuci.databinding.DialogPriceSettingsBinding) {
+        val context = requireContext()
+        val prices = PriceCalculator.getAllServiceTypePrices(context, "setrika")
+
+        dialogBinding.serviceTitle.text = "Harga Setrika Saja (4 Hari)"
+
+        // Hide day 5
+        dialogBinding.day5Container.visibility = View.GONE
+
+        // Set prices
+        dialogBinding.etDay0.setText(prices[0].toString())
+        dialogBinding.etDay1.setText(prices[1].toString())
+        dialogBinding.etDay2.setText(prices[2].toString())
+        dialogBinding.etDay3.setText(prices[3].toString())
+        dialogBinding.etDay4.setText(prices[4].toString())
+    }
+
+    private fun loadCuciPrices(dialogBinding: com.example.xcuci.databinding.DialogPriceSettingsBinding) {
+        val context = requireContext()
+        val prices = PriceCalculator.getAllServiceTypePrices(context, "cuci")
+
+        dialogBinding.serviceTitle.text = "Harga Cuci Saja (4 Hari)"
+
+        // Hide day 5
+        dialogBinding.day5Container.visibility = View.GONE
+
+        // Set prices
+        dialogBinding.etDay0.setText(prices[0].toString())
+        dialogBinding.etDay1.setText(prices[1].toString())
+        dialogBinding.etDay2.setText(prices[2].toString())
+        dialogBinding.etDay3.setText(prices[3].toString())
+        dialogBinding.etDay4.setText(prices[4].toString())
+    }
+
+    private fun savePriceSettings(dialogBinding: com.example.xcuci.databinding.DialogPriceSettingsBinding) {
+        val context = requireContext()
+        val selectedTab = dialogBinding.tabLayout.selectedTabPosition
+
+        try {
+            when (selectedTab) {
+                0 -> saveCuciDanSetrikaPrices(dialogBinding)
+                1 -> saveSetrikaPrices(dialogBinding)
+                2 -> saveCuciPrices(dialogBinding)
+            }
+//            updateCurrentPriceDisplay()
+            Toast.makeText(requireContext(), "Harga berhasil disimpan", Toast.LENGTH_SHORT).show()
+        } catch (e: NumberFormatException) {
+            Toast.makeText(requireContext(), "Pastikan semua harga diisi dengan angka", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun saveCuciDanSetrikaPrices(dialogBinding: com.example.xcuci.databinding.DialogPriceSettingsBinding) {
+        val context = requireContext()
+
+        for (day in 0..5) {
+            val price = when (day) {
+                0 -> dialogBinding.etDay0.text.toString().toInt()
+                1 -> dialogBinding.etDay1.text.toString().toInt()
+                2 -> dialogBinding.etDay2.text.toString().toInt()
+                3 -> dialogBinding.etDay3.text.toString().toInt()
+                4 -> dialogBinding.etDay4.text.toString().toInt()
+                5 -> dialogBinding.etDay5.text.toString().toInt()
+                else -> 0
+            }
+            PriceCalculator.saveServiceTypePrice(context, "cuci_dan_setrika", day, price)
+        }
+    }
+
+    private fun saveSetrikaPrices(dialogBinding: com.example.xcuci.databinding.DialogPriceSettingsBinding) {
+        val context = requireContext()
+
+        for (day in 0..4) {
+            val price = when (day) {
+                0 -> dialogBinding.etDay0.text.toString().toInt()
+                1 -> dialogBinding.etDay1.text.toString().toInt()
+                2 -> dialogBinding.etDay2.text.toString().toInt()
+                3 -> dialogBinding.etDay3.text.toString().toInt()
+                4 -> dialogBinding.etDay4.text.toString().toInt()
+                else -> 0
+            }
+            PriceCalculator.saveServiceTypePrice(context, "setrika", day, price)
+        }
+    }
+
+    private fun saveCuciPrices(dialogBinding: com.example.xcuci.databinding.DialogPriceSettingsBinding) {
+        val context = requireContext()
+
+        for (day in 0..4) {
+            val price = when (day) {
+                0 -> dialogBinding.etDay0.text.toString().toInt()
+                1 -> dialogBinding.etDay1.text.toString().toInt()
+                2 -> dialogBinding.etDay2.text.toString().toInt()
+                3 -> dialogBinding.etDay3.text.toString().toInt()
+                4 -> dialogBinding.etDay4.text.toString().toInt()
+                else -> 0
+            }
+            PriceCalculator.saveServiceTypePrice(context, "cuci", day, price)
+        }
+    }
+
+    private fun resetPriceToDefault() {
+        PriceCalculator.resetToDefault(requireContext())
     }
 
     private fun showLanguageSelectionDialog() {

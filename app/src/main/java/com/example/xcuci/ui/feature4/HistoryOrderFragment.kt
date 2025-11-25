@@ -195,6 +195,12 @@ class HistoryOrderFragment : Fragment() {
     private fun loadOrders() {
         Log.d("XBZ", "loadOrders: START")
 
+        // CEK DULU SEBELUM MEMULAI LOADING
+        if (!isAdded || isDetached || view == null) {
+            Log.d("XBZ", "Fragment not attached or view destroyed, canceling loadOrders")
+            return
+        }
+
         // GUNAKAN METHOD KHUSUS UNTUK HISTORY
         LoadingUtils.showLoadingForHistory(
             lottieLoading = binding.lottieProgress,
@@ -206,20 +212,42 @@ class HistoryOrderFragment : Fragment() {
         val orderRepository = app.orderRepository
 
         orderRepository.getOrders { orders ->
-            requireActivity().runOnUiThread {
-                allOrders = orders
-                filteredOrders = allOrders
-                Log.d("XBZ", "updateAllTabs loadOrders - Data ready: ${orders.size} orders")
-                updateAllTabs()
-                checkEmptyState()
-                // SEMBUNYIKAN LOADING
-                LoadingUtils.hideLoadingForHistory(binding.lottieProgress)
+            // CEK APAKAH FRAGMENT MASIH TERATTACH SEBELUM MENGAKSES UI
+            if (!isAdded || isDetached) {
+                Log.d("XBZ", "Fragment not attached, skipping UI update")
+                return@getOrders
+            }
 
-                Toast.makeText(
-                    requireContext(),
-                    "Memuat ${orders.size} order",
-                    Toast.LENGTH_SHORT
-                ).show()
+            // GUNAKAN requireActivity().runOnUiThread DENGAN PENGECEKAN
+            requireActivity().runOnUiThread {
+                // CEK LAGI DI DALAM UI THREAD UNTUK MEMASTIKAN
+                if (!isAdded || isDetached || view == null) {
+                    Log.d("XBZ", "Fragment detached in UI thread, skipping update")
+                    return@runOnUiThread
+                }
+
+                try {
+                    allOrders = orders
+                    filteredOrders = allOrders
+                    Log.d("XBZ", "updateAllTabs loadOrders - Data ready: ${orders.size} orders")
+                    updateAllTabs()
+                    checkEmptyState()
+                    // SEMBUNYIKAN LOADING
+                    LoadingUtils.hideLoadingForHistory(binding.lottieProgress)
+
+                    Toast.makeText(
+                        requireContext(),
+                        "Memuat ${orders.size} order",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } catch (e: IllegalStateException) {
+                    Log.e("XBZ", "Error updating UI: ${e.message}")
+                    // Emergency hide loading
+                    LoadingUtils.hideLoadingForHistory(binding.lottieProgress)
+                } catch (e: Exception) {
+                    Log.e("XBZ", "Unexpected error: ${e.message}")
+                    LoadingUtils.hideLoadingForHistory(binding.lottieProgress)
+                }
             }
         }
     }

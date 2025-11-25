@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+        <!-- Service Title -->
+        <TextView
+            android:id="@+id/serviceTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Harga Layanan"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Tab Layout -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:tabMode="scrollable"
+            app:tabGravity="fill" />
+
+        <!-- Day 0 - Express -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/day0Container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:hint="Express (Hari Ini)">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDay0"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:text="20000" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Day 1 - Besok -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/day1Container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:hint="Besok">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDay1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:text="15000" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Day 2 - 3 Hari Lagi -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/day2Container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:hint="3 Hari Lagi">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDay2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:text="12000" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Day 3 - 4 Hari Lagi -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/day3Container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:hint="4 Hari Lagi">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDay3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:text="10000" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Day 4 - 5 Hari Lagi -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/day4Container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:hint="5 Hari Lagi">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDay4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:text="8000" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Day 5 - 6 Hari Lagi (hanya untuk Cuci & Setrika) -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/day5Container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:hint="6 Hari Lagi">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDay5"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:text="6000" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </LinearLayout>
+</ScrollView>

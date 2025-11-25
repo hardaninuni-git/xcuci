@@ -71,6 +71,7 @@ class OrderAdapter(
 
                 // TAMBAHKAN INI - Display completion date
                 tvCompletionDate.text = "Selesai: ${order.completionDate.formatCompletionDate()}"
+                tvTipeLayanan.text = "${order.layananType}"
 
                 // TAMBAHKAN DETAIL PER ITEM
                 displayItemDetails(order)
@@ -91,8 +92,8 @@ class OrderAdapter(
                 if (hasItemDetails) {
                     // Tampilkan Kaos jika ada
                     if (order.kaosQty > 0) {
-                        layoutKaosDetail.visibility = View.VISIBLE
-                        tvKaosQty.text = "${order.layananType}"
+                        layoutKaosDetail.visibility = View.GONE
+                        tvKaosQty.text = "${order.kaosQty} pcs"
                     }
 
                     // Tampilkan Celana jika ada

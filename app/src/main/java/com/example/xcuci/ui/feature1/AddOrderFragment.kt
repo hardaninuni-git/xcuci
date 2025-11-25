@@ -347,7 +347,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
             else -> "Cuci & Setrika"
         }
 
-        val pricePerKg = PriceCalculator.getPricePerKgByServiceType(daysDifference, selectedServiceType)
+        val pricePerKg = PriceCalculator.getPricePerKgByServiceType(requireContext(), daysDifference, selectedServiceType)
 
         if (counterManager.countHanduk > 0 && handukSizeManager.selectedHandukSize.isNotEmpty()) {
             val handukPricePerPiece = PriceCalculator.getHandukPrice(handukSizeManager.selectedHandukSize, daysDifference)
@@ -444,7 +444,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
 
     private fun updatePriceBasedOnDate(daysDifference: Int) {
         // ✅ GUNAKAN METHOD YANG SAMA UNTUK KONSISTENSI
-        val pricePerKg = PriceCalculator.getPricePerKgByServiceType(daysDifference, selectedServiceType)
+        val pricePerKg = PriceCalculator.getPricePerKgByServiceType(requireContext(), daysDifference, selectedServiceType)
         binding.etPricePerKg.setText(pricePerKg.toString())
 
         updatePriceHelperText(daysDifference) // ✅ GUNAKAN METHOD YANG SAMA
@@ -782,7 +782,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         val daysDifference = selectedDateCalendar?.let { DateHelper.calculateDaysDifference(it) } ?: 0
 
         // Sesuaikan harga berdasarkan tipe layanan
-        val basePricePerKg = PriceCalculator.getPricePerKgByServiceType(daysDifference, selectedServiceType)
+        val basePricePerKg = PriceCalculator.getPricePerKgByServiceType(requireContext(), daysDifference, selectedServiceType)
 
         binding.etPricePerKg.setText(basePricePerKg.toString())
         calculateTotalPrice()
@@ -799,7 +799,7 @@ class AddOrderFragment : Fragment(), CustomerInputHelper.CustomerInputListener {
         }
 
         val serviceTypeText = PriceCalculator.getServiceTypeText(daysDifference)
-        val pricePerKg = PriceCalculator.getPricePerKgByServiceType(daysDifference, selectedServiceType)
+        val pricePerKg = PriceCalculator.getPricePerKgByServiceType(requireContext(), daysDifference, selectedServiceType)
 
         binding.tilPricePerKg.helperText = "Layanan: $serviceName ($serviceTypeText) - Rp ${numberFormat.format(pricePerKg)}/kg"
     }

@@ -13,6 +13,7 @@ import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -129,6 +130,10 @@ class OrderDetailActivity : AppCompatActivity() {
             showPrinterSettings()
             true
         }
+
+        binding.btnShare.setOnClickListener {
+            shareOrderDetails()
+        }
     }
 
     private fun openWhatsApp(phoneNumber: String) {
@@ -175,6 +180,63 @@ class OrderDetailActivity : AppCompatActivity() {
 
     private fun showPrinterSettings() {
         connectToPrinter(true)
+    }
+
+    private fun shareOrderDetails() {
+        currentOrder?.let { order ->
+            try {
+                val shareContent = buildShareContent(order)
+                val shareIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, "Detail Order Laundry - ORDER-#${order.id}")
+                    putExtra(Intent.EXTRA_TEXT, shareContent)
+                }
+
+                // Create chooser dialog
+                val shareChooser = Intent.createChooser(shareIntent, "Bagikan Detail Order")
+                startActivity(shareChooser)
+
+            }catch (e: Exception) {
+                Toast.makeText(this, "Gagal membagikan detail order", Toast.LENGTH_SHORT).show()
+                Log.e("OrderDetailActivity", "Error sharing order: ${e.message}")
+            }
+        } ?: run {
+            Toast.makeText(this, "Data order tidak tersedia", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun buildShareContent(order: Order): String {
+        val statusText = getStatusText(order.status)
+        val totalPcs = order.kaosQty + order.celanaQty + order.handukQty
+        return """
+        🧺 *DETAIL ORDER LAUNDRY* 🧺
+        
+        *No. Order:* ORDER-#${order.id}
+        *Status:* $statusText
+        *Tanggal:* ${order.createdAt.formatCompletionDate()}
+        
+        👤 *PELANGGAN*
+        Nama: ${order.customerName}
+        Telepon: ${order.phone}
+        Alamat: ${order.address}
+        
+        📋 *DETAIL ORDER*
+        Berat: ${order.weight} kg
+        Harga/kg: Rp ${numberFormat.format(order.pricePerKg)}
+        Total: Rp ${numberFormat.format(order.totalPrice)}
+        Tipe Layanan: ${order.layananType}
+        Total Item: $totalPcs pcs
+        
+        📅 *ESTIMASI SELESAI*
+        ${order.completionDate.formatCompletionDate()}
+        
+        📞 *KONTAK LAUNDRY*
+        YUMA LAUNDRY
+        085694245178
+        
+        _*Terima kasih telah menggunakan layanan kami*_ 🙏
+    """.trimIndent()
     }
 
     private fun connectToPrinter(isTriggered: Boolean) {
@@ -230,12 +292,12 @@ class OrderDetailActivity : AppCompatActivity() {
         if (hasBluetoothPermissions()) {
             val deviceNameDisplay = Printama.getSavedPrinterName(this)
             if (deviceNameDisplay == null || deviceNameDisplay.isEmpty()) {
-                binding.btnPrintOrder.text = "Cetak Struk\n(Bluetooth)"
+//                binding.btnPrintOrder.text = "Cetak Struk"
             } else {
-                binding.btnPrintOrder.text = "Cetak Struk\n($deviceNameDisplay)"
+//                binding.btnPrintOrder.text = "Cetak Struk"
             }
         } else {
-            binding.btnPrintOrder.text = "Cetak Struk\n(Butuh Izin)"
+//            binding.btnPrintOrder.text = "Cetak Struk"
         }
     }
 
@@ -248,6 +310,7 @@ class OrderDetailActivity : AppCompatActivity() {
         binding.btnPrintOrder.text = "Cetak Struk\n(Bluetooth)"
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun showPrinterList() {
         PrintamaUI.showPrinterList(this) { selectedDevice ->
             if (selectedDevice != null) {
@@ -346,8 +409,8 @@ class OrderDetailActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.tvReceiptPricePerKg).text = "Rp ${numberFormat.format(order.pricePerKg)}"
             findViewById<TextView>(R.id.tvReceiptTotalPrice).text = "Rp ${numberFormat.format(order.totalPrice)}"
             val totalPcs = order.kaosQty + order.celanaQty + order.handukQty
-//            findViewById<TextView>(R.id.tvReceiptKaos).text = "${order.kaosQty} pcs"
-            findViewById<TextView>(R.id.tvReceiptKaos).text = "${order.layananType}"
+            findViewById<TextView>(R.id.tvReceiptLayanan).text = "${order.layananType}"
+            findViewById<TextView>(R.id.tvReceiptKaos).text = "${order.kaosQty} pcs"
             findViewById<TextView>(R.id.tvReceiptCelana).text = "${order.celanaQty} pcs"
             findViewById<TextView>(R.id.tvReceiptHanduk).text = "${order.handukQty} pcs"
             findViewById<TextView>(R.id.tvReceiptTotalItem).text = "$totalPcs pcs"
@@ -507,6 +570,7 @@ class OrderDetailActivity : AppCompatActivity() {
             tvCreatedAt.text = formatDateTime(order.createdAt)
             tvUpdatedAt.text = formatDateTime(order.updatedAt)
             tvCompletionDate.text = order.completionDate.formatCompletionDate()
+            tvTipeLayanan.text = order.layananType
             tvOrderId.text = getString(R.string.format_order_id, order.id)
 
             // Tampilkan detail per item
@@ -523,9 +587,9 @@ class OrderDetailActivity : AppCompatActivity() {
     private fun updateStatusButtonVisibility(status: String) {
         val isComplete = status.equals("completed", ignoreCase = true)
         if (isComplete) {
-            binding.btnUpdateStatus.visibility = View.GONE
+            binding.llUpdateStatus.visibility = View.GONE
         } else {
-            binding.btnUpdateStatus.visibility = View.VISIBLE
+            binding.llUpdateStatus.visibility = View.VISIBLE
         }
     }
 
@@ -540,9 +604,8 @@ class OrderDetailActivity : AppCompatActivity() {
             val punyaItemDetails = order.kaosQty > 0 || order.celanaQty > 0 || order.handukQty > 0
             if (punyaItemDetails) {
                 if (order.kaosQty > 0){
-                    layoutKaosDetail.visibility = View.VISIBLE
-//                    tvKaosQty.text = getString(R.string.item_qty, order.kaosQty)
-                    tvKaosQty.text = "${order.layananType}"
+                    layoutKaosDetail.visibility = View.GONE
+                    tvKaosQty.text = getString(R.string.item_qty, order.kaosQty)
                 }
                 if (order.celanaQty > 0){
                     layoutCelanaDetail.visibility = View.VISIBLE
